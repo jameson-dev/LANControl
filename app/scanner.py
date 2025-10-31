@@ -1,5 +1,4 @@
 import socket
-import platform
 import subprocess
 import re
 from datetime import datetime
@@ -23,7 +22,7 @@ def get_scan_status():
 
 def ping_host(ip, timeout=1):
     """
-    Ping a host to check if it's online.
+    Ping a host to check if it's online (Linux only).
 
     Args:
         ip: IP address to ping
@@ -33,14 +32,7 @@ def ping_host(ip, timeout=1):
         bool: True if host is reachable, False otherwise
     """
     try:
-        # Platform-specific ping command
-        param = '-n' if platform.system().lower() == 'windows' else '-c'
-        timeout_param = '-w' if platform.system().lower() == 'windows' else '-W'
-
-        # Use full path for ping command on Linux
-        ping_cmd = 'ping' if platform.system().lower() == 'windows' else '/bin/ping'
-
-        command = [ping_cmd, param, '1', timeout_param, str(timeout * 1000 if platform.system().lower() == 'windows' else timeout), ip]
+        command = ['/bin/ping', '-c', '1', '-W', str(timeout), ip]
 
         result = subprocess.run(
             command,
@@ -75,7 +67,7 @@ def get_hostname(ip):
 
 def get_mac_address_arp(ip):
     """
-    Get MAC address from ARP table (works on both Windows and Linux).
+    Get MAC address from neighbor table (Linux only, uses 'ip neigh').
 
     Args:
         ip: IP address
@@ -84,21 +76,17 @@ def get_mac_address_arp(ip):
         str: MAC address or None if not found
     """
     try:
-        # First ping to ensure ARP entry exists
+        # First ping to ensure neighbor entry exists
         ping_host(ip, timeout=1)
 
-        # Get ARP table
-        if platform.system().lower() == 'windows':
-            result = subprocess.run(['arp', '-a', ip], capture_output=True, text=True, timeout=5)
-        else:
-            # Use full path for arp command on Linux
-            result = subprocess.run(['/usr/sbin/arp', '-n', ip], capture_output=True, text=True, timeout=5)
+        # Get neighbor table using modern 'ip neigh' command (iproute2)
+        result = subprocess.run(['/bin/ip', 'neigh', 'show', ip],
+                               capture_output=True, text=True, timeout=5)
 
         output = result.stdout
 
         # Parse MAC address from output
-        # Windows format: 192.168.1.1       00-11-22-33-44-55     dynamic
-        # Linux format:   192.168.1.1      ether   00:11:22:33:44:55   C   eth0
+        # Format: 192.168.0.1 dev eth0 lladdr 00:11:22:33:44:55 REACHABLE
         mac_pattern = r'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})'
         match = re.search(mac_pattern, output)
 
