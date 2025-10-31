@@ -105,28 +105,32 @@ echo ""
 echo "Installing LANControl..."
 echo ""
 
-# Check if venv module is available
+# Check if venv module is available by testing actual creation
 echo "Checking for venv module..."
-if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+
+# Try to create a test venv to see if it actually works
+TEST_VENV_DIR="/tmp/test_venv_$$"
+if ! $PYTHON_CMD -m venv "$TEST_VENV_DIR" &> /dev/null; then
+    rm -rf "$TEST_VENV_DIR" 2> /dev/null
     echo ""
-    echo "python3-venv package not found. Installing..."
+    echo "python3-venv package not found or incomplete. Installing..."
 
     # Detect package manager and install venv
     if command -v apt &> /dev/null; then
         # Debian/Ubuntu
         echo "Detected apt package manager (Debian/Ubuntu)."
-        echo "Installing python3-venv..."
+        echo "Installing python3-venv (this requires sudo)..."
         sudo apt update
         sudo apt install -y python3-venv
     elif command -v dnf &> /dev/null; then
         # Fedora/RHEL 8+
         echo "Detected dnf package manager (Fedora/RHEL)."
-        echo "Installing python3-venv..."
+        echo "Installing python3-venv (this requires sudo)..."
         sudo dnf install -y python3-venv
     elif command -v yum &> /dev/null; then
         # CentOS/RHEL 7
         echo "Detected yum package manager (CentOS/RHEL)."
-        echo "Installing python3-venv..."
+        echo "Installing python3-venv (this requires sudo)..."
         sudo yum install -y python3-venv
     else
         echo ""
@@ -146,15 +150,20 @@ if ! $PYTHON_CMD -m venv --help &> /dev/null; then
         exit 1
     fi
 
-    # Verify installation
-    if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+    # Verify installation by testing again
+    if ! $PYTHON_CMD -m venv "$TEST_VENV_DIR" &> /dev/null; then
+        rm -rf "$TEST_VENV_DIR" 2> /dev/null
         echo ""
         echo "Error: python3-venv installation failed or incomplete."
         echo "Please install it manually and try again."
         exit 1
     fi
 
+    rm -rf "$TEST_VENV_DIR"
     echo "python3-venv installed successfully!"
+else
+    rm -rf "$TEST_VENV_DIR"
+    echo "venv module is available."
 fi
 
 # Create virtual environment
