@@ -20,8 +20,17 @@ fi
 echo "Checking Python version..."
 PYTHON_CMD=""
 if command -v python3 &> /dev/null; then
+    # Get version as major.minor (e.g., 3.11)
     PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    if [ "$(echo "$PYTHON_VERSION >= 3.8" | bc -l)" -eq 1 ]; then
+
+    # Extract major and minor version numbers
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+
+    # Check if Python >= 3.8
+    if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 8 ]; then
+        PYTHON_CMD="python3"
+    elif [ "$PYTHON_MAJOR" -gt 3 ]; then
         PYTHON_CMD="python3"
     fi
 fi
