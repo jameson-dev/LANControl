@@ -37,7 +37,10 @@ def ping_host(ip, timeout=1):
         param = '-n' if platform.system().lower() == 'windows' else '-c'
         timeout_param = '-w' if platform.system().lower() == 'windows' else '-W'
 
-        command = ['ping', param, '1', timeout_param, str(timeout * 1000 if platform.system().lower() == 'windows' else timeout), ip]
+        # Use full path for ping command on Linux
+        ping_cmd = 'ping' if platform.system().lower() == 'windows' else '/bin/ping'
+
+        command = [ping_cmd, param, '1', timeout_param, str(timeout * 1000 if platform.system().lower() == 'windows' else timeout), ip]
 
         result = subprocess.run(
             command,
@@ -88,7 +91,8 @@ def get_mac_address_arp(ip):
         if platform.system().lower() == 'windows':
             result = subprocess.run(['arp', '-a', ip], capture_output=True, text=True, timeout=5)
         else:
-            result = subprocess.run(['arp', '-n', ip], capture_output=True, text=True, timeout=5)
+            # Use full path for arp command on Linux
+            result = subprocess.run(['/usr/sbin/arp', '-n', ip], capture_output=True, text=True, timeout=5)
 
         output = result.stdout
 

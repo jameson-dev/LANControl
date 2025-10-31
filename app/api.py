@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
 from datetime import datetime, timedelta
 import json
 import csv
 import io
+from threading import Thread
 from app.models import db, Device, DeviceHistory, Setting
 from app.scanner import scan_network, check_device_status, get_scan_status, update_device_from_scan, quick_scan_known_devices
 from app.wol import send_wol_packet, send_bulk_wol
@@ -256,42 +257,44 @@ def trigger_scan():
     # Get scan range from settings or use default
     scan_range = Setting.get('scan_range', Config.DEFAULT_SCAN_RANGE)
 
-    def scan_task():
+    def scan_task(app):
         """Background scan task"""
-        devices_found = scan_network(scan_range)
+        # Run within Flask app context
+        with app.app_context():
+            devices_found = scan_network(scan_range)
 
-        # Update or create devices in database
-        for device_data in devices_found:
-            existing = Device.query.filter_by(mac=device_data['mac']).first()
+            # Update or create devices in database
+            for device_data in devices_found:
+                existing = Device.query.filter_by(mac=device_data['mac']).first()
 
-            if existing:
-                # Update existing device
-                update_device_from_scan(existing, device_data)
+                if existing:
+                    # Update existing device
+                    update_device_from_scan(existing, device_data)
 
-                # Record status change
-                if existing.status != 'online':
-                    history = DeviceHistory(device_id=existing.id, status='online')
+                    # Record status change
+                    if existing.status != 'online':
+                        history = DeviceHistory(device_id=existing.id, status='online')
+                        db.session.add(history)
+                else:
+                    # Create new device
+                    new_device = Device(
+                        ip=device_data['ip'],
+                        hostname=device_data['hostname'],
+                        mac=device_data['mac'],
+                        last_seen=device_data['last_seen'],
+                        is_manual=False
+                    )
+                    db.session.add(new_device)
+                    db.session.flush()  # Get the ID
+
+                    # Record initial status
+                    history = DeviceHistory(device_id=new_device.id, status='online')
                     db.session.add(history)
-            else:
-                # Create new device
-                new_device = Device(
-                    ip=device_data['ip'],
-                    hostname=device_data['hostname'],
-                    mac=device_data['mac'],
-                    last_seen=device_data['last_seen'],
-                    is_manual=False
-                )
-                db.session.add(new_device)
-                db.session.flush()  # Get the ID
 
-                # Record initial status
-                history = DeviceHistory(device_id=new_device.id, status='online')
-                db.session.add(history)
+            db.session.commit()
 
-        db.session.commit()
-
-    # Start scan in background thread
-    thread = Thread(target=scan_task)
+    # Start scan in background thread with app context
+    thread = Thread(target=scan_task, args=(current_app._get_current_object(),))
     thread.daemon = True
     thread.start()
 
