@@ -112,8 +112,11 @@ def scan_host(ip):
         dict: Device information or None if host is not reachable
     """
     # Check if host is online
-    if not ping_host(ip):
+    is_online = ping_host(ip)
+    if not is_online:
         return None
+
+    print(f"[DEBUG] Host {ip} is online, getting details...")
 
     # Get hostname
     hostname = get_hostname(ip)
@@ -123,7 +126,10 @@ def scan_host(ip):
 
     if not mac:
         # If we can't get MAC, skip this device
+        print(f"[DEBUG] Could not get MAC for {ip}")
         return None
+
+    print(f"[DEBUG] Found device: {ip} - {hostname} - {mac}")
 
     return {
         'ip': ip,

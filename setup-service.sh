@@ -54,10 +54,13 @@ After=network.target
 Type=simple
 User=$CURRENT_USER
 WorkingDirectory=$INSTALL_DIR
-Environment="PATH=$INSTALL_DIR/venv/bin"
-ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/run.py
+Environment="PATH=$INSTALL_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=$INSTALL_DIR/venv/bin/python -u $INSTALL_DIR/run.py
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 # Security settings
 NoNewPrivileges=true
