@@ -105,9 +105,68 @@ echo ""
 echo "Installing LANControl..."
 echo ""
 
+# Check if venv module is available
+echo "Checking for venv module..."
+if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+    echo ""
+    echo "python3-venv package not found. Installing..."
+
+    # Detect package manager and install venv
+    if command -v apt &> /dev/null; then
+        # Debian/Ubuntu
+        echo "Detected apt package manager (Debian/Ubuntu)."
+        echo "Installing python3-venv..."
+        sudo apt update
+        sudo apt install -y python3-venv
+    elif command -v dnf &> /dev/null; then
+        # Fedora/RHEL 8+
+        echo "Detected dnf package manager (Fedora/RHEL)."
+        echo "Installing python3-venv..."
+        sudo dnf install -y python3-venv
+    elif command -v yum &> /dev/null; then
+        # CentOS/RHEL 7
+        echo "Detected yum package manager (CentOS/RHEL)."
+        echo "Installing python3-venv..."
+        sudo yum install -y python3-venv
+    else
+        echo ""
+        echo "=========================================="
+        echo "  Manual Installation Required"
+        echo "=========================================="
+        echo ""
+        echo "Could not detect package manager."
+        echo "Please install python3-venv manually:"
+        echo ""
+        echo "  Debian/Ubuntu:  sudo apt install python3-venv"
+        echo "  Fedora/RHEL:    sudo dnf install python3-venv"
+        echo "  CentOS:         sudo yum install python3-venv"
+        echo ""
+        echo "After installing, run this script again."
+        echo ""
+        exit 1
+    fi
+
+    # Verify installation
+    if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+        echo ""
+        echo "Error: python3-venv installation failed or incomplete."
+        echo "Please install it manually and try again."
+        exit 1
+    fi
+
+    echo "python3-venv installed successfully!"
+fi
+
 # Create virtual environment
 echo "Creating virtual environment..."
 $PYTHON_CMD -m venv venv
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "Error: Failed to create virtual environment."
+    echo "This is unexpected. Please check the error messages above."
+    exit 1
+fi
 
 # Activate virtual environment
 source venv/bin/activate
