@@ -334,6 +334,37 @@ def scan_status():
     })
 
 
+@api_bp.route('/scan/test-ping', methods=['POST'])
+@login_required
+def test_ping():
+    """Test if ping works from the service"""
+    import subprocess
+
+    test_ip = request.get_json().get('ip', '192.168.0.1')
+
+    try:
+        result = subprocess.run(
+            ['/bin/ping', '-c', '1', '-W', '1', test_ip],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=2
+        )
+
+        return jsonify({
+            'success': True,
+            'ip': test_ip,
+            'returncode': result.returncode,
+            'stdout': result.stdout.decode(),
+            'stderr': result.stderr.decode(),
+            'ping_worked': result.returncode == 0
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
 @api_bp.route('/scan/check-device/<int:device_id>', methods=['POST'])
 @login_required
 def check_device(device_id):
