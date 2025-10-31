@@ -33,7 +33,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
 
     # Server configuration
-    BIND_HOST = os.environ.get('BIND_HOST', '127.0.0.1')
+    BIND_HOST = os.environ.get('BIND_HOST', '0.0.0.0')
     BIND_PORT = int(os.environ.get('BIND_PORT', 5000))
 
     # Scanning defaults

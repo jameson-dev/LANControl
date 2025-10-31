@@ -73,8 +73,8 @@ while true; do
 done
 
 # Prompt for network settings
-read -p "Enter bind host [127.0.0.1]: " BIND_HOST
-BIND_HOST=${BIND_HOST:-127.0.0.1}
+read -p "Enter bind host [0.0.0.0]: " BIND_HOST
+BIND_HOST=${BIND_HOST:-0.0.0.0}
 
 read -p "Enter bind port [5000]: " BIND_PORT
 BIND_PORT=${BIND_PORT:-5000}

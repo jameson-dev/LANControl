@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, redirect, url_for
 from flask_login import LoginManager, login_required
 from config import Config
@@ -20,7 +21,11 @@ def create_app(config_class=Config):
     Returns:
         Flask application instance
     """
-    app = Flask(__name__)
+    # Get the parent directory (project root) for templates and static files
+    template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+
+    app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config.from_object(config_class)
 
     # Initialize extensions
