@@ -259,39 +259,50 @@ def trigger_scan():
 
     def scan_task(app):
         """Background scan task"""
-        # Run within Flask app context
-        with app.app_context():
-            devices_found = scan_network(scan_range)
+        try:
+            print(f"[SCAN] Starting background scan task for range: {scan_range}")
 
-            # Update or create devices in database
-            for device_data in devices_found:
-                existing = Device.query.filter_by(mac=device_data['mac']).first()
+            # Run within Flask app context
+            with app.app_context():
+                print("[SCAN] Calling scan_network function...")
+                devices_found = scan_network(scan_range)
+                print(f"[SCAN] Scan complete. Found {len(devices_found)} devices")
 
-                if existing:
-                    # Update existing device
-                    update_device_from_scan(existing, device_data)
+                # Update or create devices in database
+                for device_data in devices_found:
+                    existing = Device.query.filter_by(mac=device_data['mac']).first()
 
-                    # Record status change
-                    if existing.status != 'online':
-                        history = DeviceHistory(device_id=existing.id, status='online')
+                    if existing:
+                        # Update existing device
+                        update_device_from_scan(existing, device_data)
+
+                        # Record status change
+                        if existing.status != 'online':
+                            history = DeviceHistory(device_id=existing.id, status='online')
+                            db.session.add(history)
+                    else:
+                        # Create new device
+                        new_device = Device(
+                            ip=device_data['ip'],
+                            hostname=device_data['hostname'],
+                            mac=device_data['mac'],
+                            last_seen=device_data['last_seen'],
+                            is_manual=False
+                        )
+                        db.session.add(new_device)
+                        db.session.flush()  # Get the ID
+
+                        # Record initial status
+                        history = DeviceHistory(device_id=new_device.id, status='online')
                         db.session.add(history)
-                else:
-                    # Create new device
-                    new_device = Device(
-                        ip=device_data['ip'],
-                        hostname=device_data['hostname'],
-                        mac=device_data['mac'],
-                        last_seen=device_data['last_seen'],
-                        is_manual=False
-                    )
-                    db.session.add(new_device)
-                    db.session.flush()  # Get the ID
 
-                    # Record initial status
-                    history = DeviceHistory(device_id=new_device.id, status='online')
-                    db.session.add(history)
+                db.session.commit()
+                print(f"[SCAN] Database updated successfully")
 
-            db.session.commit()
+        except Exception as e:
+            print(f"[SCAN] ERROR in scan_task: {e}")
+            import traceback
+            traceback.print_exc()
 
     # Start scan in background thread with app context
     thread = Thread(target=scan_task, args=(current_app._get_current_object(),))
