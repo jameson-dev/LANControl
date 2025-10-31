@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LANControl{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            hover: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+        }
+        .status-online {
+            background-color: #10b981;
+        }
+        .status-offline {
+            background-color: #ef4444;
+        }
+        .status-unknown {
+            background-color: #6b7280;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-dark-bg text-gray-100 min-h-screen">
+    <!-- Navigation -->
+    {% if current_user.is_authenticated %}
+    <nav class="bg-dark-card border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-blue-400">LANControl</h1>
+                    </div>
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="{{ url_for('main.dashboard') }}"
+                           class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                            Dashboard
+                        </a>
+                        <a href="{{ url_for('main.settings') }}"
+                           class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                            Settings
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-gray-400 mr-4">{{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}"
+                       class="px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-dark-hover hover:text-white">
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    <div id="flash-container" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toast Notification Function -->
+    <script>
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('flash-container');
+            const toast = document.createElement('div');
+
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-yellow-600',
+                info: 'bg-blue-600'
+            };
+
+            toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-x-full');
+            }, 10);
+
+            // Auto remove after 4 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => {
+                    container.removeChild(toast);
+                }, 300);
+            }, 4000);
+        }
+
+        // Helper function for API calls
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

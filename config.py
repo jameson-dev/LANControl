@@ -1,5 +1,19 @@
 import os
 from datetime import timedelta
+from pathlib import Path
+
+# Load .env file if it exists
+def load_env():
+    env_file = Path(__file__).parent / '.env'
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key, value)
+
+load_env()
 
 class Config:
     # Base directory
@@ -23,7 +37,7 @@ class Config:
     BIND_PORT = int(os.environ.get('BIND_PORT', 5000))
 
     # Scanning defaults
-    DEFAULT_SCAN_RANGE = '192.168.1.0/24'
+    DEFAULT_SCAN_RANGE = os.environ.get('DEFAULT_SCAN_RANGE', '192.168.1.0/24')
     DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
     DEFAULT_HISTORY_RETENTION = 30  # days
 
