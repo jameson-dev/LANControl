@@ -167,10 +167,13 @@ def scan_network(cidr, max_workers=50, progress_callback=None):
         total_hosts = len(hosts)
 
         print(f"Scanning {total_hosts} hosts in {cidr}...")
+        print(f"[DEBUG] First 5 IPs to scan: {hosts[:5]}")
 
         # Scan hosts concurrently
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            print(f"[DEBUG] ThreadPoolExecutor created with {max_workers} workers")
             future_to_ip = {executor.submit(scan_host, ip): ip for ip in hosts}
+            print(f"[DEBUG] Submitted {len(future_to_ip)} scan tasks")
 
             completed = 0
             for future in as_completed(future_to_ip):
@@ -188,6 +191,9 @@ def scan_network(cidr, max_workers=50, progress_callback=None):
                 # Call progress callback if provided
                 if progress_callback:
                     progress_callback(completed, total_hosts)
+
+                if completed % 50 == 0:
+                    print(f"[DEBUG] Progress: {completed}/{total_hosts}")
 
         print(f"Scan complete. Found {len(devices)} devices.")
 
