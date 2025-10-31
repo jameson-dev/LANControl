@@ -245,10 +245,13 @@ def get_device_history(device_id):
 @login_required
 def trigger_scan():
     """Trigger an immediate network scan"""
-    from threading import Thread
+    print("[SCAN] /api/scan/now endpoint called")
 
     status = get_scan_status()
+    print(f"[SCAN] Current scan status: {status}")
+
     if status['in_progress']:
+        print("[SCAN] Scan already in progress, returning 409")
         return jsonify({
             'success': False,
             'message': 'Scan already in progress'
@@ -256,6 +259,7 @@ def trigger_scan():
 
     # Get scan range from settings or use default
     scan_range = Setting.get('scan_range', Config.DEFAULT_SCAN_RANGE)
+    print(f"[SCAN] Scan range from settings: {scan_range}")
 
     def scan_task(app):
         """Background scan task"""
@@ -305,9 +309,12 @@ def trigger_scan():
             traceback.print_exc()
 
     # Start scan in background thread with app context
+    print("[SCAN] Creating thread...")
     thread = Thread(target=scan_task, args=(current_app._get_current_object(),))
     thread.daemon = True
+    print("[SCAN] Starting thread...")
     thread.start()
+    print(f"[SCAN] Thread started: {thread.is_alive()}")
 
     return jsonify({
         'success': True,

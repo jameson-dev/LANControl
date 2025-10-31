@@ -6,6 +6,11 @@ Main entry point for running the application.
 
 import sys
 import os
+
+# Force unbuffered output for proper logging in systemd
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
+sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
+
 from app import create_app
 from app.models import db, User
 from config import Config
