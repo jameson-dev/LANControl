@@ -15,13 +15,13 @@ def scheduled_network_scan():
     print(f"[{datetime.utcnow()}] Running scheduled network scan...")
 
     try:
-        # Get scan range from settings
-        scan_range = Setting.get('scan_range', Config.DEFAULT_SCAN_RANGE)
-
-        # Perform scan
-        devices_found = scan_network(scan_range)
-
         with scheduler.app.app_context():
+            # Get scan range from settings
+            scan_range = Setting.get('scan_range', Config.DEFAULT_SCAN_RANGE)
+
+            # Perform scan
+            devices_found = scan_network(scan_range)
+
             # Update or create devices in database
             for device_data in devices_found:
                 existing = Device.query.filter_by(mac=device_data['mac']).first()
@@ -56,7 +56,7 @@ def scheduled_network_scan():
 
             db.session.commit()
 
-        print(f"Scheduled scan complete. Found {len(devices_found)} devices.")
+            print(f"Scheduled scan complete. Found {len(devices_found)} devices.")
 
     except Exception as e:
         print(f"Error in scheduled scan: {e}")

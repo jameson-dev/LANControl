@@ -200,11 +200,8 @@ function displayDevices(devices) {
                     ${device.is_favorite ? '<span class="text-yellow-400 mr-2">★</span>' : ''}
                     <div>
                         <div class="text-sm font-medium text-white">
-                            ${device.nickname || device.hostname || (device.vendor && device.vendor !== 'Unknown' ? device.vendor + ' Device' : 'Unknown Device')}
+                            ${device.nickname || device.hostname || '-'}
                         </div>
-                        ${device.nickname && device.hostname ? `<div class="text-xs text-gray-400">${device.hostname}</div>` :
-                          device.nickname && device.vendor && device.vendor !== 'Unknown' ? `<div class="text-xs text-gray-400">${device.vendor}</div>` :
-                          !device.nickname && device.vendor && device.vendor !== 'Unknown' ? `<div class="text-xs text-gray-400">Click Edit to set nickname</div>` : ''}
                     </div>
                 </div>
             </td>
