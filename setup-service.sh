@@ -62,8 +62,12 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
+# Network capabilities for ping/scanning
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+
 # Security settings
-NoNewPrivileges=true
+NoNewPrivileges=false
 PrivateTmp=true
 
 [Install]

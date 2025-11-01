@@ -245,13 +245,9 @@ def get_device_history(device_id):
 @login_required
 def trigger_scan():
     """Trigger an immediate network scan"""
-    print("[SCAN] /api/scan/now endpoint called")
-
     status = get_scan_status()
-    print(f"[SCAN] Current scan status: {status}")
 
     if status['in_progress']:
-        print("[SCAN] Scan already in progress, returning 409")
         return jsonify({
             'success': False,
             'message': 'Scan already in progress'
@@ -259,18 +255,13 @@ def trigger_scan():
 
     # Get scan range from settings or use default
     scan_range = Setting.get('scan_range', Config.DEFAULT_SCAN_RANGE)
-    print(f"[SCAN] Scan range from settings: {scan_range}")
 
     def scan_task(app):
         """Background scan task"""
         try:
-            print(f"[SCAN] Starting background scan task for range: {scan_range}")
-
             # Run within Flask app context
             with app.app_context():
-                print("[SCAN] Calling scan_network function...")
                 devices_found = scan_network(scan_range)
-                print(f"[SCAN] Scan complete. Found {len(devices_found)} devices")
 
                 # Update or create devices in database
                 for device_data in devices_found:
@@ -301,20 +292,16 @@ def trigger_scan():
                         db.session.add(history)
 
                 db.session.commit()
-                print(f"[SCAN] Database updated successfully")
 
         except Exception as e:
-            print(f"[SCAN] ERROR in scan_task: {e}")
+            print(f"ERROR in scan_task: {e}")
             import traceback
             traceback.print_exc()
 
     # Start scan in background thread with app context
-    print("[SCAN] Creating thread...")
     thread = Thread(target=scan_task, args=(current_app._get_current_object(),))
     thread.daemon = True
-    print("[SCAN] Starting thread...")
     thread.start()
-    print(f"[SCAN] Thread started: {thread.is_alive()}")
 
     return jsonify({
         'success': True,

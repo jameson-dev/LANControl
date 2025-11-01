@@ -1,6 +1,8 @@
 // Global variables
 let allDevices = [];
 let currentSort = { field: 'nickname', direction: 'asc' };
+let refreshInterval = null;
+let fastRefreshInterval = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -9,11 +11,32 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 
     // Auto-refresh every 30 seconds
-    setInterval(() => {
+    startNormalRefresh();
+});
+
+function startNormalRefresh() {
+    // Clear any existing intervals
+    if (refreshInterval) clearInterval(refreshInterval);
+    if (fastRefreshInterval) clearInterval(fastRefreshInterval);
+
+    // Normal refresh every 30 seconds
+    refreshInterval = setInterval(() => {
         loadDevices();
         loadStats();
     }, 30000);
-});
+}
+
+function startFastRefresh() {
+    // Clear any existing intervals
+    if (refreshInterval) clearInterval(refreshInterval);
+    if (fastRefreshInterval) clearInterval(fastRefreshInterval);
+
+    // Fast refresh every 2 seconds during scan
+    fastRefreshInterval = setInterval(() => {
+        loadDevices();
+        loadStats();
+    }, 2000);
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -250,6 +273,9 @@ async function triggerScan() {
         const data = await apiCall('/api/scan/now', { method: 'POST' });
         showToast(data.message, 'success');
 
+        // Switch to fast refresh during scan
+        startFastRefresh();
+
         // Poll for scan completion
         const pollInterval = setInterval(async () => {
             try {
@@ -258,14 +284,23 @@ async function triggerScan() {
                     clearInterval(pollInterval);
                     btn.disabled = false;
                     btnText.textContent = 'Scan Network';
-                    loadDevices();
-                    loadStats();
+
+                    // Do one final refresh
+                    await loadDevices();
+                    await loadStats();
+
+                    // Switch back to normal refresh after scan completes
+                    setTimeout(() => {
+                        startNormalRefresh();
+                    }, 5000); // Keep fast refresh for 5 more seconds
+
                     showToast('Scan completed', 'success');
                 }
             } catch (error) {
                 clearInterval(pollInterval);
                 btn.disabled = false;
                 btnText.textContent = 'Scan Network';
+                startNormalRefresh(); // Return to normal refresh on error
             }
         }, 2000);
 
@@ -273,6 +308,7 @@ async function triggerScan() {
         showToast('Error starting scan: ' + error.message, 'error');
         btn.disabled = false;
         btnText.textContent = 'Scan Network';
+        startNormalRefresh(); // Return to normal refresh on error
     }
 }
 

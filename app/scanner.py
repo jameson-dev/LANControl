@@ -50,7 +50,7 @@ def ping_host(ip, timeout=1):
 
 def get_hostname(ip):
     """
-    Get hostname for an IP address using DNS lookup.
+    Get hostname for an IP address using multiple methods.
 
     Args:
         ip: IP address
@@ -58,11 +58,51 @@ def get_hostname(ip):
     Returns:
         str: Hostname or None if not found
     """
+    # Try DNS reverse lookup first
     try:
         hostname = socket.gethostbyaddr(ip)[0]
-        return hostname if hostname != ip else None
+        if hostname and hostname != ip:
+            # Clean up .local suffix if present
+            return hostname.replace('.local', '')
     except Exception:
-        return None
+        pass
+
+    # Try avahi-resolve (mDNS) - many devices broadcast their names
+    try:
+        result = subprocess.run(['/usr/bin/avahi-resolve-address', ip],
+                               capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            # Output format: "192.168.0.x    hostname.local"
+            parts = result.stdout.strip().split()
+            if len(parts) >= 2:
+                hostname = parts[1].replace('.local', '')
+                if hostname and hostname != ip:
+                    return hostname
+    except FileNotFoundError:
+        # avahi-resolve not installed, skip
+        pass
+    except Exception:
+        pass
+
+    # Try nmblookup for Windows/NetBIOS names
+    try:
+        result = subprocess.run(['/usr/bin/nmblookup', '-A', ip],
+                               capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            # Parse NetBIOS name from output
+            for line in result.stdout.split('\n'):
+                if '<00>' in line and 'GROUP' not in line:
+                    # Extract hostname before <00>
+                    hostname = line.split()[0].strip()
+                    if hostname and hostname != ip:
+                        return hostname
+    except FileNotFoundError:
+        # nmblookup not installed, skip
+        pass
+    except Exception:
+        pass
+
+    return None
 
 
 def get_mac_address_arp(ip):
@@ -116,8 +156,6 @@ def scan_host(ip):
     if not is_online:
         return None
 
-    print(f"[DEBUG] Host {ip} is online, getting details...")
-
     # Get hostname
     hostname = get_hostname(ip)
 
@@ -126,10 +164,7 @@ def scan_host(ip):
 
     if not mac:
         # If we can't get MAC, skip this device
-        print(f"[DEBUG] Could not get MAC for {ip}")
         return None
-
-    print(f"[DEBUG] Found device: {ip} - {hostname} - {mac}")
 
     return {
         'ip': ip,
@@ -167,13 +202,10 @@ def scan_network(cidr, max_workers=50, progress_callback=None):
         total_hosts = len(hosts)
 
         print(f"Scanning {total_hosts} hosts in {cidr}...")
-        print(f"[DEBUG] First 5 IPs to scan: {hosts[:5]}")
 
         # Scan hosts concurrently
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            print(f"[DEBUG] ThreadPoolExecutor created with {max_workers} workers")
             future_to_ip = {executor.submit(scan_host, ip): ip for ip in hosts}
-            print(f"[DEBUG] Submitted {len(future_to_ip)} scan tasks")
 
             completed = 0
             for future in as_completed(future_to_ip):
@@ -184,16 +216,13 @@ def scan_network(cidr, max_workers=50, progress_callback=None):
                     result = future.result()
                     if result:
                         devices.append(result)
-                        print(f"Found device: {result['ip']} - {result['hostname']} - {result['mac']}")
+                        print(f"Found device: {result['ip']} - {result['hostname'] or 'Unknown'} - {result['mac']}")
                 except Exception as e:
                     print(f"Error scanning {ip}: {e}")
 
                 # Call progress callback if provided
                 if progress_callback:
                     progress_callback(completed, total_hosts)
-
-                if completed % 50 == 0:
-                    print(f"[DEBUG] Progress: {completed}/{total_hosts}")
 
         print(f"Scan complete. Found {len(devices)} devices.")
 

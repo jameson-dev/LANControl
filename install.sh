@@ -166,7 +166,28 @@ else
     echo "venv module is available."
 fi
 
+# Install additional network tools for hostname resolution
+echo ""
+echo "Installing additional network tools..."
+
+if command -v apt &> /dev/null; then
+    echo "Installing avahi-utils and samba-common-bin for hostname resolution..."
+    sudo apt install -y avahi-utils samba-common-bin
+elif command -v dnf &> /dev/null; then
+    echo "Installing avahi-tools and samba-common for hostname resolution..."
+    sudo dnf install -y avahi-tools samba-common
+elif command -v yum &> /dev/null; then
+    echo "Installing avahi-tools and samba-common for hostname resolution..."
+    sudo yum install -y avahi-tools samba-common
+else
+    echo "Warning: Could not install hostname resolution tools automatically."
+    echo "For better hostname detection, manually install: avahi-utils samba-common-bin"
+fi
+
+echo "Network tools installation complete."
+
 # Create virtual environment
+echo ""
 echo "Creating virtual environment..."
 $PYTHON_CMD -m venv venv
 
