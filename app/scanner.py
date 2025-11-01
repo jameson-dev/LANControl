@@ -48,6 +48,71 @@ def ping_host(ip, timeout=1):
         return False
 
 
+def get_ssdp_info(ip, timeout=2):
+    """
+    Try to get device info via SSDP (UPnP discovery).
+
+    Args:
+        ip: IP address to query
+        timeout: Timeout in seconds
+
+    Returns:
+        str: Device friendly name or None
+    """
+    try:
+        import socket as sock
+
+        # SSDP M-SEARCH message
+        ssdp_request = (
+            'M-SEARCH * HTTP/1.1\r\n'
+            'HOST: 239.255.255.250:1900\r\n'
+            'MAN: "ssdp:discover"\r\n'
+            'MX: 1\r\n'
+            'ST: ssdp:all\r\n'
+            '\r\n'
+        ).encode('utf-8')
+
+        # Create UDP socket
+        s = sock.socket(sock.AF_INET, sock.SOCK_DGRAM)
+        s.settimeout(timeout)
+
+        # Send to specific IP on SSDP port
+        s.sendto(ssdp_request, (ip, 1900))
+
+        # Try to receive response
+        try:
+            data, addr = s.recvfrom(8192)
+            response = data.decode('utf-8', errors='ignore')
+
+            # Look for LOCATION header to fetch device description
+            for line in response.split('\r\n'):
+                if line.lower().startswith('location:'):
+                    location_url = line.split(':', 1)[1].strip()
+
+                    # Fetch device description XML
+                    import urllib.request
+                    try:
+                        with urllib.request.urlopen(location_url, timeout=2) as resp:
+                            xml_data = resp.read().decode('utf-8', errors='ignore')
+
+                            # Extract friendly name from XML (simple regex, not full XML parser)
+                            import re
+                            match = re.search(r'<friendlyName>([^<]+)</friendlyName>', xml_data, re.IGNORECASE)
+                            if match:
+                                return match.group(1).strip()
+                    except Exception:
+                        pass
+        except sock.timeout:
+            pass
+        finally:
+            s.close()
+
+    except Exception:
+        pass
+
+    return None
+
+
 def get_hostname(ip):
     """
     Get hostname for an IP address using multiple methods.
@@ -58,7 +123,7 @@ def get_hostname(ip):
     Returns:
         str: Hostname or None if not found
     """
-    # Try DNS reverse lookup first
+    # Try DNS reverse lookup first (fastest)
     try:
         hostname = socket.gethostbyaddr(ip)[0]
         if hostname and hostname != ip:
@@ -81,6 +146,14 @@ def get_hostname(ip):
     except FileNotFoundError:
         # avahi-resolve not installed, skip
         pass
+    except Exception:
+        pass
+
+    # Try SSDP/UPnP discovery (good for smart TVs, printers, IoT devices)
+    try:
+        ssdp_name = get_ssdp_info(ip, timeout=2)
+        if ssdp_name:
+            return ssdp_name
     except Exception:
         pass
 
