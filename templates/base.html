@@ -43,28 +43,76 @@
     <nav class="bg-dark-card border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
+                <div class="flex items-center flex-1">
                     <div class="flex-shrink-0">
-                        <h1 class="text-2xl font-bold text-blue-400">LANControl</h1>
+                        <h1 class="text-xl sm:text-2xl font-bold text-blue-400">LANControl</h1>
                     </div>
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="{{ url_for('main.dashboard') }}"
-                           class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
-                            Dashboard
-                        </a>
-                        <a href="{{ url_for('main.settings') }}"
-                           class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
-                            Settings
-                        </a>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex items-baseline space-x-4">
+                            <a href="{{ url_for('main.dashboard') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                                Dashboard
+                            </a>
+                            <a href="{{ url_for('main.alerts') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.alerts' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                                Alerts
+                            </a>
+                            <a href="{{ url_for('main.settings') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                                Settings
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <span class="text-gray-400 mr-4">{{ current_user.username }}</span>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="{{ url_for('main.alerts') }}" class="relative" title="Alerts">
+                        <svg class="w-6 h-6 text-gray-400 hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <span id="alertBadge" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"></span>
+                    </a>
+                    <span class="text-gray-400 text-sm">{{ current_user.username }}</span>
                     <a href="{{ url_for('auth.logout') }}"
                        class="px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-dark-hover hover:text-white">
                         Logout
                     </a>
                 </div>
+                <div class="md:hidden flex items-center gap-3">
+                    <a href="{{ url_for('main.alerts') }}" class="relative" title="Alerts">
+                        <svg class="w-6 h-6 text-gray-400 hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <span id="alertBadgeMobile" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold"></span>
+                    </a>
+                    <button onclick="toggleMobileMenu()" class="text-gray-400 hover:text-white focus:outline-none">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobileMenu" class="hidden md:hidden border-t border-gray-700">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="{{ url_for('main.dashboard') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                    Dashboard
+                </a>
+                <a href="{{ url_for('main.alerts') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.alerts' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                    Alerts
+                </a>
+                <a href="{{ url_for('main.settings') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                    Settings
+                </a>
+                <div class="border-t border-gray-700 my-2"></div>
+                <div class="px-3 py-2 text-gray-400 text-sm">{{ current_user.username }}</div>
+                <a href="{{ url_for('auth.logout') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-dark-hover hover:text-white">
+                    Logout
+                </a>
             </div>
         </div>
     </nav>
@@ -133,6 +181,45 @@
                 throw error;
             }
         }
+
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Update alert badge
+        async function updateAlertBadge() {
+            try {
+                const data = await apiCall('/api/alerts/stats');
+                const unread = data.stats.unread;
+
+                const badge = document.getElementById('alertBadge');
+                const badgeMobile = document.getElementById('alertBadgeMobile');
+
+                if (unread > 0) {
+                    if (badge) {
+                        badge.textContent = unread > 9 ? '9+' : unread;
+                        badge.classList.remove('hidden');
+                    }
+                    if (badgeMobile) {
+                        badgeMobile.textContent = unread > 9 ? '9+' : unread;
+                        badgeMobile.classList.remove('hidden');
+                    }
+                } else {
+                    if (badge) badge.classList.add('hidden');
+                    if (badgeMobile) badgeMobile.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error loading alert badge:', error);
+            }
+        }
+
+        // Update alert badge on page load and every 30 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAlertBadge();
+            setInterval(updateAlertBadge, 30000);
+        });
     </script>
 
     {% block extra_scripts %}{% endblock %}

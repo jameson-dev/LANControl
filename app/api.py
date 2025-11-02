@@ -5,10 +5,12 @@ import json
 import csv
 import io
 from threading import Thread
-from app.models import db, Device, DeviceHistory, Setting
+from app.models import db, Device, DeviceHistory, Setting, DevicePort, DeviceAlert, AlertRule
 from app.scanner import scan_network, check_device_status, get_scan_status, update_device_from_scan, quick_scan_known_devices
 from app.wol import send_wol_packet, send_bulk_wol
 from app.utils import validate_mac, validate_ip, normalize_mac, calculate_uptime_percentage
+from app.port_scanner import scan_device_ports, quick_scan_common_ports, full_port_scan, detect_device_type
+from app.alerts import create_alert, check_device_status_change, check_new_device, check_port_changes
 from config import Config
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -506,3 +508,262 @@ def get_stats():
             'groups': groups_dict
         }
     })
+
+
+# ============================================================================
+# PORT SCANNING ENDPOINTS
+# ============================================================================
+
+@api_bp.route('/devices/<int:device_id>/ports/scan', methods=['POST'])
+@login_required
+def scan_device_ports_endpoint(device_id):
+    """Scan ports on a specific device"""
+    device = Device.query.get_or_404(device_id)
+
+    if not device.ip:
+        return jsonify({'success': False, 'message': 'Device has no IP address'}), 400
+
+    data = request.get_json() or {}
+    scan_type = data.get('scan_type', 'quick')  # 'quick' or 'full'
+
+    try:
+        # Perform port scan
+        if scan_type == 'full':
+            open_ports = full_port_scan(device.ip)
+        else:
+            open_ports = quick_scan_common_ports(device.ip)
+
+        # Get existing ports for this device
+        existing_ports = DevicePort.query.filter_by(device_id=device_id).all()
+        old_ports = [{'port': p.port, 'protocol': p.protocol} for p in existing_ports]
+
+        # Check for port changes
+        check_port_changes(device, open_ports, old_ports)
+
+        # Delete old port records
+        DevicePort.query.filter_by(device_id=device_id).delete()
+
+        # Add new port records
+        for port_info in open_ports:
+            port = DevicePort(
+                device_id=device_id,
+                port=port_info['port'],
+                protocol=port_info['protocol'],
+                service=port_info['service'],
+                state=port_info['state']
+            )
+            db.session.add(port)
+
+        db.session.commit()
+
+        # Detect device type
+        device_type = detect_device_type(open_ports)
+
+        return jsonify({
+            'success': True,
+            'message': f'Found {len(open_ports)} open ports',
+            'ports': open_ports,
+            'device_type': device_type
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_bp.route('/devices/<int:device_id>/ports', methods=['GET'])
+@login_required
+def get_device_ports(device_id):
+    """Get scanned ports for a device"""
+    ports = DevicePort.query.filter_by(device_id=device_id).order_by(DevicePort.port).all()
+
+    return jsonify({
+        'success': True,
+        'ports': [p.to_dict() for p in ports]
+    })
+
+
+# ============================================================================
+# ALERT ENDPOINTS
+# ============================================================================
+
+@api_bp.route('/alerts', methods=['GET'])
+@login_required
+def get_alerts():
+    """Get all alerts with optional filtering"""
+    # Get query parameters
+    device_id = request.args.get('device_id', type=int)
+    alert_type = request.args.get('alert_type')
+    is_read = request.args.get('is_read')
+    limit = request.args.get('limit', type=int, default=100)
+
+    # Build query
+    query = DeviceAlert.query
+
+    if device_id:
+        query = query.filter_by(device_id=device_id)
+
+    if alert_type:
+        query = query.filter_by(alert_type=alert_type)
+
+    if is_read is not None:
+        query = query.filter_by(is_read=(is_read.lower() == 'true'))
+
+    # Order by most recent first
+    alerts = query.order_by(DeviceAlert.created_at.desc()).limit(limit).all()
+
+    return jsonify({
+        'success': True,
+        'alerts': [a.to_dict() for a in alerts]
+    })
+
+
+@api_bp.route('/alerts/<int:alert_id>/read', methods=['POST'])
+@login_required
+def mark_alert_read(alert_id):
+    """Mark an alert as read"""
+    alert = DeviceAlert.query.get_or_404(alert_id)
+    alert.is_read = True
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Alert marked as read'})
+
+
+@api_bp.route('/alerts/mark-all-read', methods=['POST'])
+@login_required
+def mark_all_alerts_read():
+    """Mark all alerts as read"""
+    DeviceAlert.query.filter_by(is_read=False).update({'is_read': True})
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'All alerts marked as read'})
+
+
+@api_bp.route('/alerts/<int:alert_id>', methods=['DELETE'])
+@login_required
+def delete_alert(alert_id):
+    """Delete an alert"""
+    alert = DeviceAlert.query.get_or_404(alert_id)
+    db.session.delete(alert)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Alert deleted'})
+
+
+@api_bp.route('/alerts/stats', methods=['GET'])
+@login_required
+def get_alert_stats():
+    """Get alert statistics"""
+    total_alerts = DeviceAlert.query.count()
+    unread_alerts = DeviceAlert.query.filter_by(is_read=False).count()
+
+    # Count by severity
+    critical = DeviceAlert.query.filter_by(severity='critical').count()
+    warning = DeviceAlert.query.filter_by(severity='warning').count()
+    info = DeviceAlert.query.filter_by(severity='info').count()
+
+    # Count by type
+    status_change = DeviceAlert.query.filter_by(alert_type='status_change').count()
+    new_device = DeviceAlert.query.filter_by(alert_type='new_device').count()
+    port_change = DeviceAlert.query.filter_by(alert_type='port_change').count()
+
+    return jsonify({
+        'success': True,
+        'stats': {
+            'total': total_alerts,
+            'unread': unread_alerts,
+            'by_severity': {
+                'critical': critical,
+                'warning': warning,
+                'info': info
+            },
+            'by_type': {
+                'status_change': status_change,
+                'new_device': new_device,
+                'port_change': port_change
+            }
+        }
+    })
+
+
+# ============================================================================
+# ALERT RULE ENDPOINTS
+# ============================================================================
+
+@api_bp.route('/alert-rules', methods=['GET'])
+@login_required
+def get_alert_rules():
+    """Get all alert rules"""
+    rules = AlertRule.query.order_by(AlertRule.created_at.desc()).all()
+
+    return jsonify({
+        'success': True,
+        'rules': [r.to_dict() for r in rules]
+    })
+
+
+@api_bp.route('/alert-rules', methods=['POST'])
+@login_required
+def create_alert_rule():
+    """Create a new alert rule"""
+    data = request.get_json()
+
+    rule = AlertRule(
+        name=data.get('name'),
+        event_type=data.get('event_type'),
+        enabled=data.get('enabled', True),
+        notify_email=data.get('notify_email', False),
+        notify_webhook=data.get('notify_webhook', False),
+        webhook_url=data.get('webhook_url'),
+        device_filter=data.get('device_filter', 'all')
+    )
+
+    db.session.add(rule)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Alert rule created',
+        'rule': rule.to_dict()
+    })
+
+
+@api_bp.route('/alert-rules/<int:rule_id>', methods=['PUT'])
+@login_required
+def update_alert_rule(rule_id):
+    """Update an alert rule"""
+    rule = AlertRule.query.get_or_404(rule_id)
+    data = request.get_json()
+
+    if 'name' in data:
+        rule.name = data['name']
+    if 'event_type' in data:
+        rule.event_type = data['event_type']
+    if 'enabled' in data:
+        rule.enabled = data['enabled']
+    if 'notify_email' in data:
+        rule.notify_email = data['notify_email']
+    if 'notify_webhook' in data:
+        rule.notify_webhook = data['notify_webhook']
+    if 'webhook_url' in data:
+        rule.webhook_url = data['webhook_url']
+    if 'device_filter' in data:
+        rule.device_filter = data['device_filter']
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Alert rule updated',
+        'rule': rule.to_dict()
+    })
+
+
+@api_bp.route('/alert-rules/<int:rule_id>', methods=['DELETE'])
+@login_required
+def delete_alert_rule(rule_id):
+    """Delete an alert rule"""
+    rule = AlertRule.query.get_or_404(rule_id)
+    db.session.delete(rule)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Alert rule deleted'})

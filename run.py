@@ -12,7 +12,7 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 
 from app import create_app
-from app.models import db, User
+from app.models import db, User, DevicePort, DeviceAlert, AlertRule
 from config import Config
 
 
@@ -42,6 +42,15 @@ def init_database():
         print("Database initialized successfully")
 
 
+def migrate_database():
+    """Migrate database to add new tables (for existing installations)"""
+    app = create_app()
+    with app.app_context():
+        # This will create new tables without affecting existing ones
+        db.create_all()
+        print("Database migration complete - new tables added")
+
+
 def main():
     """Main entry point"""
     # Check for command-line arguments
@@ -50,6 +59,10 @@ def main():
 
         if command == 'init-db':
             init_database()
+            return
+
+        elif command == 'migrate-db':
+            migrate_database()
             return
 
         elif command == 'create-user':
@@ -66,6 +79,7 @@ def main():
             print(f"Unknown command: {command}")
             print("Available commands:")
             print("  init-db              - Initialize the database")
+            print("  migrate-db           - Migrate database (add new tables)")
             print("  create-user <user> <pass> - Create a new user")
             return
 

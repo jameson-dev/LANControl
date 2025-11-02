@@ -61,11 +61,18 @@ def create_app(config_class=Config):
         """Settings page"""
         return render_template('settings.html')
 
+    @app.route('/alerts')
+    @login_required
+    def alerts():
+        """Alerts page"""
+        return render_template('alerts.html')
+
     # Register main blueprint
     from flask import Blueprint
     main_bp = Blueprint('main', __name__)
     main_bp.add_url_rule('/dashboard', 'dashboard', dashboard)
     main_bp.add_url_rule('/settings', 'settings', settings)
+    main_bp.add_url_rule('/alerts', 'alerts', alerts)
     app.register_blueprint(main_bp)
 
     # Error handlers

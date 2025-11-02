@@ -39,8 +39,10 @@ class Device(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationship to history
+    # Relationships
     history = db.relationship('DeviceHistory', backref='device', lazy=True, cascade='all, delete-orphan')
+    ports = db.relationship('DevicePort', backref='device', lazy=True, cascade='all, delete-orphan')
+    alerts = db.relationship('DeviceAlert', backref='device', lazy=True, cascade='all, delete-orphan')
 
     @property
     def status(self):
@@ -129,3 +131,98 @@ class Setting(db.Model):
 
     def __repr__(self):
         return f'<Setting {self.key}={self.value}>'
+
+
+class DevicePort(db.Model):
+    __tablename__ = 'device_ports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('devices.id'), nullable=False)
+    port = db.Column(db.Integer, nullable=False)
+    protocol = db.Column(db.String(10), default='tcp')  # 'tcp' or 'udp'
+    service = db.Column(db.String(50), nullable=True)  # HTTP, SSH, etc.
+    state = db.Column(db.String(20), default='open')  # open, closed, filtered
+    last_scanned = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.Index('idx_device_port', 'device_id', 'port', 'protocol'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'port': self.port,
+            'protocol': self.protocol,
+            'service': self.service,
+            'state': self.state,
+            'last_scanned': self.last_scanned.isoformat()
+        }
+
+    def __repr__(self):
+        return f'<DevicePort device={self.device_id} port={self.port}/{self.protocol}>'
+
+
+class DeviceAlert(db.Model):
+    __tablename__ = 'device_alerts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('devices.id'), nullable=False)
+    alert_type = db.Column(db.String(50), nullable=False)  # 'status_change', 'new_device', 'port_change'
+    message = db.Column(db.Text, nullable=False)
+    severity = db.Column(db.String(20), default='info')  # 'info', 'warning', 'critical'
+    is_read = db.Column(db.Boolean, default=False)
+    is_notified = db.Column(db.Boolean, default=False)  # Email sent or not
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    metadata = db.Column(db.Text, nullable=True)  # JSON string for additional data
+
+    __table_args__ = (
+        db.Index('idx_alert_created', 'created_at'),
+        db.Index('idx_alert_read', 'is_read'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'alert_type': self.alert_type,
+            'message': self.message,
+            'severity': self.severity,
+            'is_read': self.is_read,
+            'is_notified': self.is_notified,
+            'created_at': self.created_at.isoformat(),
+            'metadata': self.metadata
+        }
+
+    def __repr__(self):
+        return f'<DeviceAlert {self.alert_type} device={self.device_id}>'
+
+
+class AlertRule(db.Model):
+    __tablename__ = 'alert_rules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    event_type = db.Column(db.String(50), nullable=False)  # 'device_offline', 'device_online', 'new_device', 'port_change'
+    enabled = db.Column(db.Boolean, default=True)
+    notify_email = db.Column(db.Boolean, default=False)
+    notify_webhook = db.Column(db.Boolean, default=False)
+    webhook_url = db.Column(db.String(500), nullable=True)
+    device_filter = db.Column(db.String(100), nullable=True)  # 'all', 'favorites', or specific group name
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'event_type': self.event_type,
+            'enabled': self.enabled,
+            'notify_email': self.notify_email,
+            'notify_webhook': self.notify_webhook,
+            'webhook_url': self.webhook_url,
+            'device_filter': self.device_filter,
+            'created_at': self.created_at.isoformat()
+        }
+
+    def __repr__(self):
+        return f'<AlertRule {self.name}>'

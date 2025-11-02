@@ -5,80 +5,76 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Header with Stats and Actions -->
-    <div class="flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-white">Network Devices</h2>
-        <div class="flex space-x-3">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">Network Devices</h2>
+        <div class="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
             <button onclick="triggerScan()"
                     id="scanBtn"
-                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                    class="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
                 <span id="scanBtnText">Scan Network</span>
             </button>
             <button onclick="showAddDeviceModal()"
-                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
+                    class="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
                 Add Device
             </button>
             <button onclick="exportDevices()"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                    class="flex-1 sm:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
                 Export
             </button>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="statsCards">
-        <div class="bg-dark-card rounded-lg p-4 border border-gray-700">
-            <div class="text-gray-400 text-sm">Total Devices</div>
-            <div class="text-3xl font-bold text-white mt-1" id="stat-total">-</div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="statsCards">
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Total Devices</div>
+            <div class="text-2xl sm:text-3xl font-bold text-white mt-1" id="stat-total">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-4 border border-gray-700">
-            <div class="text-gray-400 text-sm">Online</div>
-            <div class="text-3xl font-bold text-green-400 mt-1" id="stat-online">-</div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Online</div>
+            <div class="text-2xl sm:text-3xl font-bold text-green-400 mt-1" id="stat-online">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-4 border border-gray-700">
-            <div class="text-gray-400 text-sm">Offline</div>
-            <div class="text-3xl font-bold text-red-400 mt-1" id="stat-offline">-</div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Offline</div>
+            <div class="text-2xl sm:text-3xl font-bold text-red-400 mt-1" id="stat-offline">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-4 border border-gray-700">
-            <div class="text-gray-400 text-sm">Favorites</div>
-            <div class="text-3xl font-bold text-yellow-400 mt-1" id="stat-favorites">-</div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Favorites</div>
+            <div class="text-2xl sm:text-3xl font-bold text-yellow-400 mt-1" id="stat-favorites">-</div>
         </div>
     </div>
 
     <!-- Filters and Search -->
-    <div class="bg-dark-card rounded-lg p-4 border border-gray-700">
-        <div class="flex flex-wrap gap-4">
-            <div class="flex-1 min-w-64">
+    <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+            <div class="flex-1 sm:min-w-64">
                 <input type="text"
                        id="searchInput"
                        placeholder="Search devices..."
-                       class="w-full px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <div>
+            <div class="flex gap-3 flex-wrap">
                 <select id="groupFilter"
-                        class="px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Groups</option>
                 </select>
-            </div>
-            <div>
                 <select id="statusFilter"
-                        class="px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Status</option>
                     <option value="online">Online</option>
                     <option value="offline">Offline</option>
                     <option value="unknown">Unknown</option>
                 </select>
-            </div>
-            <div>
-                <label class="flex items-center space-x-2 px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg cursor-pointer">
+                <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg cursor-pointer">
                     <input type="checkbox" id="favoritesOnly" class="form-checkbox h-5 w-5 text-blue-600">
-                    <span class="text-white">Favorites Only</span>
+                    <span class="text-white text-sm sm:text-base">Favorites Only</span>
                 </label>
             </div>
         </div>
     </div>
 
-    <!-- Devices List -->
-    <div class="bg-dark-card rounded-lg border border-gray-700 overflow-hidden">
+    <!-- Devices List - Desktop Table View -->
+    <div class="hidden md:block bg-dark-card rounded-lg border border-gray-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-700">
                 <thead class="bg-dark-hover">
@@ -117,6 +113,13 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Devices List - Mobile Card View -->
+    <div class="md:hidden space-y-3" id="devicesCards">
+        <div class="text-center text-gray-400 py-4">
+            Loading devices...
         </div>
     </div>
 </div>

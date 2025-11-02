@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - LANControl{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">Alerts</h2>
+        <div class="flex gap-2 sm:gap-3 w-full sm:w-auto flex-wrap">
+            <button id="enableNotificationsBtn" onclick="enableNotifications()" class="hidden px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition text-sm">
+                🔔 Enable Notifications
+            </button>
+            <button onclick="markAllRead()"
+                    class="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                Mark All Read
+            </button>
+            <button onclick="clearReadAlerts()"
+                    class="flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
+                Clear Read
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Stats -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Total Alerts</div>
+            <div class="text-2xl sm:text-3xl font-bold text-white mt-1" id="stat-total">-</div>
+        </div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Unread</div>
+            <div class="text-2xl sm:text-3xl font-bold text-blue-400 mt-1" id="stat-unread">-</div>
+        </div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Critical</div>
+            <div class="text-2xl sm:text-3xl font-bold text-red-400 mt-1" id="stat-critical">-</div>
+        </div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Warning</div>
+            <div class="text-2xl sm:text-3xl font-bold text-yellow-400 mt-1" id="stat-warning">-</div>
+        </div>
+        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+            <div class="text-gray-400 text-xs sm:text-sm">Info</div>
+            <div class="text-2xl sm:text-3xl font-bold text-gray-400 mt-1" id="stat-info">-</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <select id="typeFilter"
+                    onchange="loadAlerts()"
+                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Types</option>
+                <option value="status_change">Status Change</option>
+                <option value="new_device">New Device</option>
+                <option value="port_change">Port Change</option>
+            </select>
+            <select id="severityFilter"
+                    onchange="loadAlerts()"
+                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Severities</option>
+                <option value="critical">Critical</option>
+                <option value="warning">Warning</option>
+                <option value="info">Info</option>
+            </select>
+            <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg cursor-pointer">
+                <input type="checkbox" id="unreadOnly" onchange="loadAlerts()" class="form-checkbox h-5 w-5 text-blue-600">
+                <span class="text-white text-sm sm:text-base">Unread Only</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Alerts List -->
+    <div id="alertsList" class="space-y-3">
+        <div class="text-center text-gray-400 py-8">
+            Loading alerts...
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+{% endblock %}

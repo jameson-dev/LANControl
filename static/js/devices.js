@@ -176,6 +176,7 @@ function sortCompare(a, b, field, direction) {
 // Display devices in table
 function displayDevices(devices) {
     const tbody = document.getElementById('devicesTable');
+    const cards = document.getElementById('devicesCards');
 
     if (devices.length === 0) {
         tbody.innerHTML = `
@@ -185,14 +186,20 @@ function displayDevices(devices) {
                 </td>
             </tr>
         `;
+        cards.innerHTML = `
+            <div class="text-center text-gray-400 py-4">
+                No devices found
+            </div>
+        `;
         return;
     }
 
+    // Desktop table view
     tbody.innerHTML = devices.map(device => `
         <tr class="hover:bg-dark-hover transition">
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-${device.status}">
-                    ${device.status}
+                <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
+                      title="${device.status}">
                 </span>
             </td>
             <td class="px-6 py-4">
@@ -222,27 +229,102 @@ function displayDevices(devices) {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                 <button onclick="wakeDevice(${device.id})"
-                        class="text-green-400 hover:text-green-300"
+                        class="text-green-400 hover:text-green-300 transition"
                         title="Wake on LAN">
-                    Wake
+                    ⚡
+                </button>
+                <button onclick="scanDevicePorts(${device.id}, 'quick')"
+                        class="text-purple-400 hover:text-purple-300 transition"
+                        title="Scan Ports"
+                        ${!device.ip ? 'disabled style="opacity:0.3"' : ''}>
+                    🔍
                 </button>
                 <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite})"
-                        class="text-yellow-400 hover:text-yellow-300"
+                        class="text-yellow-400 hover:text-yellow-300 transition"
                         title="Toggle favorite">
                     ${device.is_favorite ? '★' : '☆'}
                 </button>
                 <button onclick="showEditDeviceModal(${device.id})"
-                        class="text-blue-400 hover:text-blue-300"
-                        title="Edit">
-                    Edit
+                        class="text-blue-400 hover:text-blue-300 transition"
+                        title="Edit device">
+                    ✏️
                 </button>
                 <button onclick="deleteDevice(${device.id})"
-                        class="text-red-400 hover:text-red-300"
-                        title="Delete">
-                    Delete
+                        class="text-red-400 hover:text-red-300 transition"
+                        title="Delete device">
+                    🗑️
                 </button>
             </td>
         </tr>
+    `).join('');
+
+    // Mobile card view
+    cards.innerHTML = devices.map(device => `
+        <div class="bg-dark-card border border-gray-700 rounded-lg p-4">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
+                          title="${device.status}">
+                    </span>
+                    ${device.is_favorite ? '<span class="text-yellow-400">★</span>' : ''}
+                    <div class="text-base font-medium text-white">
+                        ${device.nickname || device.hostname || '-'}
+                    </div>
+                </div>
+                <div class="flex gap-3 text-lg">
+                    <button onclick="wakeDevice(${device.id})"
+                            class="text-green-400 active:text-green-300 transition"
+                            title="Wake on LAN">
+                        ⚡
+                    </button>
+                    <button onclick="scanDevicePorts(${device.id}, 'quick')"
+                            class="text-purple-400 active:text-purple-300 transition"
+                            title="Scan Ports"
+                            ${!device.ip ? 'disabled style="opacity:0.3"' : ''}>
+                        🔍
+                    </button>
+                    <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite})"
+                            class="text-yellow-400 active:text-yellow-300 transition"
+                            title="Toggle favorite">
+                        ${device.is_favorite ? '★' : '☆'}
+                    </button>
+                    <button onclick="showEditDeviceModal(${device.id})"
+                            class="text-blue-400 active:text-blue-300 transition"
+                            title="Edit device">
+                        ✏️
+                    </button>
+                    <button onclick="deleteDevice(${device.id})"
+                            class="text-red-400 active:text-red-300 transition"
+                            title="Delete device">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">IP:</span>
+                    <span class="text-gray-300">${device.ip || '-'}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">MAC:</span>
+                    <span class="text-gray-300 font-mono text-xs">${device.mac}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Vendor:</span>
+                    <span class="text-gray-300">${device.vendor || 'Unknown'}</span>
+                </div>
+                ${device.group ? `
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Group:</span>
+                    <span class="text-gray-300">${device.group}</span>
+                </div>
+                ` : ''}
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Last Seen:</span>
+                    <span class="text-gray-300">${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}</span>
+                </div>
+            </div>
+        </div>
     `).join('');
 }
 
@@ -455,5 +537,91 @@ async function exportDevices() {
         showToast('Devices exported successfully', 'success');
     } catch (error) {
         showToast('Error exporting devices: ' + error.message, 'error');
+    }
+}
+
+// Scan device ports
+async function scanDevicePorts(deviceId, scanType = 'quick') {
+    const device = allDevices.find(d => d.id === deviceId);
+    if (!device) return;
+
+    if (!device.ip) {
+        showToast('Device has no IP address', 'error');
+        return;
+    }
+
+    try {
+        showToast(`Scanning ports on ${device.nickname || device.hostname || device.mac}...`, 'info');
+
+        const data = await apiCall(`/api/devices/${deviceId}/ports/scan`, {
+            method: 'POST',
+            body: JSON.stringify({ scan_type: scanType })
+        });
+
+        showToast(data.message, 'success');
+        showPortScanResults(device, data.ports, data.device_type);
+    } catch (error) {
+        showToast('Error scanning ports: ' + error.message, 'error');
+    }
+}
+
+// Show port scan results modal
+function showPortScanResults(device, ports, deviceType) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.id = 'portScanModal';
+
+    const deviceName = device.nickname || device.hostname || device.mac;
+
+    modal.innerHTML = `
+        <div class="bg-dark-card rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-white">Port Scan Results</h3>
+                    <p class="text-gray-400 text-sm mt-1">${deviceName} (${device.ip})</p>
+                    ${deviceType !== 'unknown' ? `<p class="text-blue-400 text-sm mt-1">Detected: ${deviceType.replace('_', ' ').toUpperCase()}</p>` : ''}
+                </div>
+                <button onclick="closePortScanModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+
+            ${ports.length === 0 ? `
+                <div class="text-center text-gray-400 py-8">
+                    No open ports found
+                </div>
+            ` : `
+                <div class="space-y-2">
+                    ${ports.map(port => `
+                        <div class="bg-dark-bg border border-gray-700 rounded-lg p-3 flex justify-between items-center">
+                            <div>
+                                <div class="text-white font-medium">Port ${port.port}/${port.protocol}</div>
+                                <div class="text-gray-400 text-sm">${port.service}</div>
+                            </div>
+                            <span class="px-3 py-1 bg-green-900/30 text-green-400 rounded-full text-sm">${port.state}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `}
+
+            <div class="mt-6 flex gap-3">
+                <button onclick="scanDevicePorts(${device.id}, 'full')"
+                        class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                    Run Full Scan
+                </button>
+                <button onclick="closePortScanModal()"
+                        class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+// Close port scan modal
+function closePortScanModal() {
+    const modal = document.getElementById('portScanModal');
+    if (modal) {
+        document.body.removeChild(modal);
     }
 }

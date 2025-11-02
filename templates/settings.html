@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="space-y-6">
-    <h2 class="text-3xl font-bold text-white">Settings</h2>
+    <h2 class="text-2xl sm:text-3xl font-bold text-white">Settings</h2>
 
     <!-- Scan Settings -->
-    <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
-        <h3 class="text-xl font-bold text-white mb-4">Network Scanning</h3>
+    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+        <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Network Scanning</h3>
         <form id="scanSettingsForm" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -63,9 +63,101 @@
         </form>
     </div>
 
+    <!-- Email Notification Settings -->
+    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+        <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Email Notifications</h3>
+        <form id="emailSettingsForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    SMTP Server
+                </label>
+                <input type="text"
+                       id="smtpServer"
+                       placeholder="smtp.gmail.com"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-sm text-gray-400 mt-1">SMTP server address</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    SMTP Port
+                </label>
+                <input type="number"
+                       id="smtpPort"
+                       placeholder="587"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-sm text-gray-400 mt-1">Usually 587 for TLS or 465 for SSL</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    SMTP Username
+                </label>
+                <input type="text"
+                       id="smtpUsername"
+                       placeholder="your-email@gmail.com"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    SMTP Password
+                </label>
+                <input type="password"
+                       id="smtpPassword"
+                       placeholder="••••••••"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-sm text-gray-400 mt-1">For Gmail, use an App Password</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    From Email Address
+                </label>
+                <input type="email"
+                       id="smtpFrom"
+                       placeholder="LANControl <alerts@yourdomain.com>"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-sm text-gray-400 mt-1">Optional, defaults to username</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Alert Recipient Email
+                </label>
+                <input type="email"
+                       id="alertEmail"
+                       placeholder="alerts@yourdomain.com"
+                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-sm text-gray-400 mt-1">Where to send alert notifications</p>
+            </div>
+
+            <button type="submit"
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                Save Email Settings
+            </button>
+        </form>
+    </div>
+
+    <!-- Alert Rules -->
+    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg sm:text-xl font-bold text-white">Alert Rules</h3>
+            <button onclick="showAddRuleModal()"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition">
+                Add Rule
+            </button>
+        </div>
+        <div id="alertRulesList" class="space-y-3">
+            <div class="text-center text-gray-400 py-4">
+                Loading alert rules...
+            </div>
+        </div>
+    </div>
+
     <!-- Security Settings -->
-    <div class="bg-dark-card rounded-lg p-6 border border-gray-700">
-        <h3 class="text-xl font-bold text-white mb-4">Security</h3>
+    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+        <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Security</h3>
         <form id="passwordForm" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -124,6 +216,81 @@
         </div>
     </div>
 </div>
+
+<!-- Add/Edit Alert Rule Modal -->
+<div id="alertRuleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-dark-card rounded-lg p-6 max-w-md w-full mx-4 border border-gray-700">
+        <h3 class="text-xl font-bold text-white mb-4" id="ruleModalTitle">Add Alert Rule</h3>
+        <form id="alertRuleForm" class="space-y-4">
+            <input type="hidden" id="ruleId">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Rule Name *</label>
+                <input type="text"
+                       id="ruleName"
+                       placeholder="Critical Devices Offline"
+                       class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Event Type *</label>
+                <select id="ruleEventType"
+                        class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required>
+                    <option value="device_offline">Device Goes Offline</option>
+                    <option value="device_online">Device Comes Online</option>
+                    <option value="new_device">New Device Discovered</option>
+                    <option value="port_change">Port Changes Detected</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Device Filter</label>
+                <select id="ruleDeviceFilter"
+                        class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Devices</option>
+                    <option value="favorites">Favorites Only</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Which devices this rule applies to</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="ruleNotifyEmail" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="text-sm text-gray-300">Send Email Notifications</span>
+                </label>
+
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" id="ruleNotifyWebhook" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="text-sm text-gray-300">Send Webhook Notifications</span>
+                </label>
+            </div>
+
+            <div id="webhookUrlDiv" class="hidden">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Webhook URL</label>
+                <input type="url"
+                       id="ruleWebhookUrl"
+                       placeholder="https://discord.com/api/webhooks/..."
+                       class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-400 mt-1">Discord, Slack, or custom webhook URL</p>
+            </div>
+
+            <div class="flex space-x-3 pt-4">
+                <button type="submit"
+                        class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                    Save Rule
+                </button>
+                <button type="button"
+                        onclick="closeAlertRuleModal()"
+                        class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
