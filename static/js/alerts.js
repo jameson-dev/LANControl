@@ -192,7 +192,7 @@ function displayAlerts(alerts) {
                             ${!alert.is_read ? '<span class="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">NEW</span>' : ''}
                         </div>
                         <p class="text-white text-base mb-2">${escapeHtml(alert.message)}</p>
-                        ${alert.metadata ? renderMetadata(alert.metadata) : ''}
+                        ${alert.extra_data ? renderMetadata(alert.extra_data) : ''}
                     </div>
                     <div class="flex flex-col gap-2">
                         ${!alert.is_read ? `
@@ -214,11 +214,11 @@ function displayAlerts(alerts) {
     }).join('');
 }
 
-// Render metadata nicely
-function renderMetadata(metadataJson) {
+// Render extra_data nicely
+function renderMetadata(extraDataJson) {
     try {
-        const metadata = JSON.parse(metadataJson);
-        const items = Object.entries(metadata).map(([key, value]) => {
+        const extraData = JSON.parse(extraDataJson);
+        const items = Object.entries(extraData).map(([key, value]) => {
             const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             return `<span class="text-xs text-gray-400">${label}: <span class="text-gray-300">${value}</span></span>`;
         });

@@ -10,7 +10,7 @@ from datetime import datetime
 from app.models import db, Device, DeviceAlert, AlertRule, Setting
 
 
-def create_alert(device_id, alert_type, message, severity='info', metadata=None):
+def create_alert(device_id, alert_type, message, severity='info', extra_data=None):
     """
     Create a new alert for a device.
 
@@ -19,7 +19,7 @@ def create_alert(device_id, alert_type, message, severity='info', metadata=None)
         alert_type: Type of alert (status_change, new_device, port_change)
         message: Alert message
         severity: Severity level (info, warning, critical)
-        metadata: Optional JSON-serializable metadata
+        extra_data: Optional JSON-serializable extra data
 
     Returns:
         DeviceAlert: Created alert object
@@ -29,7 +29,7 @@ def create_alert(device_id, alert_type, message, severity='info', metadata=None)
         alert_type=alert_type,
         message=message,
         severity=severity,
-        metadata=json.dumps(metadata) if metadata else None
+        extra_data=json.dumps(extra_data) if extra_data else None
     )
     db.session.add(alert)
     db.session.commit()
@@ -246,8 +246,8 @@ def send_webhook_notification(alert, device, rule):
             }
         }
 
-        if alert.metadata:
-            payload['metadata'] = json.loads(alert.metadata)
+        if alert.extra_data:
+            payload['extra_data'] = json.loads(alert.extra_data)
 
         response = requests.post(
             rule.webhook_url,
@@ -292,7 +292,7 @@ def check_device_status_change(device, new_status):
         alert_type='status_change',
         message=message,
         severity=severity,
-        metadata={'old_status': old_status, 'new_status': new_status}
+        extra_data={'old_status': old_status, 'new_status': new_status}
     )
 
     return True
@@ -318,7 +318,7 @@ def check_new_device(device):
         alert_type='new_device',
         message=message,
         severity='info',
-        metadata={'vendor': device.vendor}
+        extra_data={'vendor': device.vendor}
     )
 
 
@@ -352,7 +352,7 @@ def check_port_changes(device, new_ports, old_ports):
             alert_type='port_change',
             message=message,
             severity=severity,
-            metadata={'opened_ports': list(newly_opened)}
+            extra_data={'opened_ports': list(newly_opened)}
         )
 
     if newly_closed:
@@ -364,5 +364,5 @@ def check_port_changes(device, new_ports, old_ports):
             alert_type='port_change',
             message=message,
             severity='info',
-            metadata={'closed_ports': list(newly_closed)}
+            extra_data={'closed_ports': list(newly_closed)}
         )

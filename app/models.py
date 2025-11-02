@@ -174,7 +174,7 @@ class DeviceAlert(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     is_notified = db.Column(db.Boolean, default=False)  # Email sent or not
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    metadata = db.Column(db.Text, nullable=True)  # JSON string for additional data
+    extra_data = db.Column(db.Text, nullable=True)  # JSON string for additional data
 
     __table_args__ = (
         db.Index('idx_alert_created', 'created_at'),
@@ -191,7 +191,7 @@ class DeviceAlert(db.Model):
             'is_read': self.is_read,
             'is_notified': self.is_notified,
             'created_at': self.created_at.isoformat(),
-            'metadata': self.metadata
+            'extra_data': self.extra_data
         }
 
     def __repr__(self):
