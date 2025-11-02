@@ -70,7 +70,7 @@ class Device(db.Model):
             'icon': self.icon,
             'is_favorite': self.is_favorite,
             'is_manual': self.is_manual,
-            'last_seen': self.last_seen.isoformat() if self.last_seen else None,
+            'last_seen': self.last_seen.isoformat() + 'Z' if self.last_seen else None,
             'status': self.status,
             'vendor': self.vendor,
             'created_at': self.created_at.isoformat(),
