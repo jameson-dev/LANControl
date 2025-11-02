@@ -96,7 +96,7 @@ def main():
     app.run(
         host=Config.BIND_HOST,
         port=Config.BIND_PORT,
-        debug=True,
+        debug=False,
         threaded=True
     )
 
