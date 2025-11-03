@@ -196,7 +196,7 @@ function displayDevices(devices) {
 
     // Desktop table view
     tbody.innerHTML = devices.map(device => `
-        <tr class="hover:bg-dark-hover transition">
+        <tr class="hover:bg-white/5 transition cursor-pointer" data-device-id="${device.id}">
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
                       title="${device.status}">
@@ -227,40 +227,26 @@ function displayDevices(devices) {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                 ${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button onclick="wakeDevice(${device.id})"
-                        class="text-green-400 hover:text-green-300 transition"
-                        title="Wake on LAN">
-                    ⚡
-                </button>
-                <button onclick="scanDevicePorts(${device.id}, 'quick')"
-                        class="text-purple-400 hover:text-purple-300 transition"
-                        title="Scan Ports"
-                        ${!device.ip ? 'disabled style="opacity:0.3"' : ''}>
-                    🔍
-                </button>
-                <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite})"
-                        class="text-yellow-400 hover:text-yellow-300 transition"
-                        title="Toggle favorite">
-                    ${device.is_favorite ? '★' : '☆'}
-                </button>
-                <button onclick="showEditDeviceModal(${device.id})"
-                        class="text-blue-400 hover:text-blue-300 transition"
-                        title="Edit device">
-                    ✏️
-                </button>
-                <button onclick="deleteDevice(${device.id})"
-                        class="text-red-400 hover:text-red-300 transition"
-                        title="Delete device">
-                    🗑️
-                </button>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <div class="relative inline-block">
+                    <button onclick="toggleDropdown(event, ${device.id})"
+                            class="text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                            title="Actions">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                        </svg>
+                    </button>
+                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50">
+                        ${createDeviceMenu(device)}
+                    </div>
+                </div>
             </td>
         </tr>
     `).join('');
 
     // Mobile card view
     cards.innerHTML = devices.map(device => `
-        <div class="glass rounded-lg p-4 hover:glass-hover transition">
+        <div class="device-card glass rounded-lg p-4 hover:glass-hover transition cursor-pointer" data-device-id="${device.id}">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
@@ -271,33 +257,17 @@ function displayDevices(devices) {
                         ${device.nickname || device.hostname || '-'}
                     </div>
                 </div>
-                <div class="flex gap-3 text-lg">
-                    <button onclick="wakeDevice(${device.id})"
-                            class="text-green-400 active:text-green-300 transition"
-                            title="Wake on LAN">
-                        ⚡
+                <div class="relative">
+                    <button onclick="toggleDropdown(event, ${device.id})"
+                            class="text-gray-400 active:text-white transition p-2 rounded-lg active:bg-white/10"
+                            title="Actions">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                        </svg>
                     </button>
-                    <button onclick="scanDevicePorts(${device.id}, 'quick')"
-                            class="text-purple-400 active:text-purple-300 transition"
-                            title="Scan Ports"
-                            ${!device.ip ? 'disabled style="opacity:0.3"' : ''}>
-                        🔍
-                    </button>
-                    <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite})"
-                            class="text-yellow-400 active:text-yellow-300 transition"
-                            title="Toggle favorite">
-                        ${device.is_favorite ? '★' : '☆'}
-                    </button>
-                    <button onclick="showEditDeviceModal(${device.id})"
-                            class="text-blue-400 active:text-blue-300 transition"
-                            title="Edit device">
-                        ✏️
-                    </button>
-                    <button onclick="deleteDevice(${device.id})"
-                            class="text-red-400 active:text-red-300 transition"
-                            title="Delete device">
-                        🗑️
-                    </button>
+                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50">
+                        ${createDeviceMenu(device)}
+                    </div>
                 </div>
             </div>
             <div class="space-y-2 text-sm">
@@ -625,3 +595,119 @@ function closePortScanModal() {
         document.body.removeChild(modal);
     }
 }
+
+// Create device menu items
+function createDeviceMenu(device) {
+    return `
+        <button onclick="wakeDevice(${device.id}); closeAllDropdowns();"
+                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
+            <span class="text-green-400">⚡</span>
+            <span>Wake on LAN</span>
+        </button>
+        <button onclick="scanDevicePorts(${device.id}, 'quick'); closeAllDropdowns();"
+                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3 ${!device.ip ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${!device.ip ? 'disabled' : ''}>
+            <span class="text-purple-400">🔍</span>
+            <span>Scan Ports</span>
+        </button>
+        <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite}); closeAllDropdowns();"
+                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
+            <span class="text-yellow-400">${device.is_favorite ? '★' : '☆'}</span>
+            <span>${device.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
+        </button>
+        <div class="border-t border-white/10"></div>
+        <button onclick="showEditDeviceModal(${device.id}); closeAllDropdowns();"
+                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
+            <span class="text-blue-400">✏️</span>
+            <span>Edit Device</span>
+        </button>
+        <button onclick="deleteDevice(${device.id}); closeAllDropdowns();"
+                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-red-400 flex items-center gap-3">
+            <span>🗑️</span>
+            <span>Delete Device</span>
+        </button>
+    `;
+}
+
+// Toggle dropdown menu
+function toggleDropdown(event, deviceId) {
+    event.stopPropagation();
+
+    // Close all other dropdowns
+    document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+        if (dropdown.id !== `dropdown-${deviceId}`) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Toggle this dropdown
+    const dropdown = document.getElementById(`dropdown-${deviceId}`);
+    dropdown.classList.toggle('hidden');
+}
+
+// Close all dropdowns
+function closeAllDropdowns() {
+    document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
+        dropdown.classList.add('hidden');
+    });
+    hideContextMenu();
+}
+
+// Context menu functionality
+let contextMenuDevice = null;
+
+function showContextMenu(event, device) {
+    event.preventDefault();
+
+    // Remove existing context menu
+    hideContextMenu();
+
+    contextMenuDevice = device;
+
+    // Create context menu
+    const menu = document.createElement('div');
+    menu.id = 'deviceContextMenu';
+    menu.className = 'context-menu dropdown-menu rounded-lg overflow-hidden';
+    menu.innerHTML = createDeviceMenu(device);
+
+    // Position the menu
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+
+    document.body.appendChild(menu);
+
+    // Show the menu
+    setTimeout(() => menu.classList.add('show'), 10);
+}
+
+function hideContextMenu() {
+    const menu = document.getElementById('deviceContextMenu');
+    if (menu) {
+        menu.remove();
+    }
+    contextMenuDevice = null;
+}
+
+// Close dropdowns and context menu when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('[id^="dropdown-"]') && !event.target.closest('button[onclick*="toggleDropdown"]')) {
+        closeAllDropdowns();
+    }
+});
+
+// Add right-click context menu to table rows
+document.addEventListener('DOMContentLoaded', function() {
+    // This will be attached dynamically when rows are rendered
+    document.addEventListener('contextmenu', function(event) {
+        const row = event.target.closest('tr[data-device-id]');
+        const card = event.target.closest('.device-card[data-device-id]');
+
+        if (row || card) {
+            const deviceId = parseInt((row || card).getAttribute('data-device-id'));
+            const device = allDevices.find(d => d.id === deviceId);
+            if (device) {
+                showContextMenu(event, device);
+            }
+        }
+    });
+});

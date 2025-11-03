@@ -89,6 +89,34 @@
             position: relative;
             z-index: 1;
         }
+
+        /* Context Menu & Dropdown */
+        .dropdown-menu {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            min-width: 180px;
+        }
+
+        .dropdown-menu-item {
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .context-menu {
+            position: fixed;
+            z-index: 9999;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
