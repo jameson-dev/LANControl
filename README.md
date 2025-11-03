@@ -1,6 +1,6 @@
 # LANControl
 
-A modern Python web application for home LAN device management with network scanning, Wake-on-LAN capabilities, and comprehensive device monitoring.
+A modern Python web application for comprehensive home LAN device management with network scanning, Wake-on-LAN, bandwidth monitoring, and advanced device documentation.
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Flask](https://img.shields.io/badge/flask-3.0-green.svg)
@@ -10,7 +10,7 @@ A modern Python web application for home LAN device management with network scan
 
 ### Core Functionality
 - **Network Scanning** - Automatic discovery of devices on your LAN using ARP scanning
-- **Wake-on-LAN** - Send magic packets to wake up sleeping devices
+- **Wake-on-LAN** - Send magic packets to wake up sleeping devices (single or bulk)
 - **Device Management** - Add, edit, delete, and organize your network devices
 - **Real-time Status** - Monitor which devices are online/offline
 - **Persistent Sessions** - Stay logged in without automatic timeouts
@@ -18,27 +18,42 @@ A modern Python web application for home LAN device management with network scan
 ### Device Management
 - **Device Nicknames** - Assign friendly names to devices
 - **Grouping** - Organize devices by room or category
-- **Favorites** - Pin frequently accessed devices
+- **Favorites** - Mark important devices with visual indicators
 - **Manual Entry** - Add devices that don't appear in scans
 - **MAC Vendor Lookup** - Automatically identify device manufacturers
+- **Device Notes** - Add documentation, purchase dates, warranty info
+- **Custom Types** - Categorize devices beyond auto-detection
 
-### Monitoring & History
+### Advanced Features (V3)
+- **Network Topology** - Auto-discover and visualize network connections
+- **Bandwidth Monitoring** - Track network usage per device over time
+- **Port Scanning** - Discover open ports and running services
+- **Device Type Detection** - Automatic identification based on port signatures
+- **Bulk Actions** - Perform operations on multiple devices simultaneously
+
+### Monitoring & Alerts
 - **Status Tracking** - Real-time online/offline status
 - **Device History** - Track when devices were last seen
 - **Uptime Statistics** - Monitor device availability over time
-- **Configurable Retention** - Control how long history is kept
+- **Alert System** - Notifications for device status changes
+- **Email Notifications** - SMTP-based alerts
+- **Webhooks** - Discord, Slack, and custom integrations
+- **Desktop Notifications** - Browser-based alerts
 
 ### User Interface
-- **Modern Dark Theme** - Easy on the eyes, perfect for home servers
+- **Glassmorphism Theme** - Modern frosted-glass design with dark mode
 - **Responsive Design** - Works on desktop, tablet, and mobile
 - **Search & Filter** - Quickly find devices by name, IP, MAC, or group
 - **Sort Options** - Sort by any column (status, name, IP, etc.)
 - **Export Data** - Export device list to CSV or JSON
+- **Context Menus** - Right-click for quick actions
 
 ### Automation
 - **Scheduled Scanning** - Automatic periodic network scans
 - **Background Tasks** - Status checks run independently
 - **Auto-discovery** - New devices automatically added to inventory
+- **Topology Discovery** - Daily automatic network mapping
+- **Bandwidth Collection** - Continuous traffic monitoring (every 5 minutes)
 
 ## Screenshots
 

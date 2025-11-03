@@ -166,22 +166,23 @@ else
     echo "venv module is available."
 fi
 
-# Install additional network tools for hostname resolution
+# Install additional network tools for hostname resolution and bandwidth monitoring
 echo ""
 echo "Installing additional network tools..."
 
 if command -v apt &> /dev/null; then
-    echo "Installing avahi-utils and samba-common-bin for hostname resolution..."
-    sudo apt install -y avahi-utils samba-common-bin
+    echo "Installing network tools (avahi-utils, samba-common-bin, conntrack)..."
+    sudo apt install -y avahi-utils samba-common-bin conntrack
 elif command -v dnf &> /dev/null; then
-    echo "Installing avahi-tools and samba-common for hostname resolution..."
-    sudo dnf install -y avahi-tools samba-common
+    echo "Installing network tools (avahi-tools, samba-common, conntrack-tools)..."
+    sudo dnf install -y avahi-tools samba-common conntrack-tools
 elif command -v yum &> /dev/null; then
-    echo "Installing avahi-tools and samba-common for hostname resolution..."
-    sudo yum install -y avahi-tools samba-common
+    echo "Installing network tools (avahi-tools, samba-common, conntrack-tools)..."
+    sudo yum install -y avahi-tools samba-common conntrack-tools
 else
-    echo "Warning: Could not install hostname resolution tools automatically."
+    echo "Warning: Could not install network tools automatically."
     echo "For better hostname detection, manually install: avahi-utils samba-common-bin"
+    echo "For bandwidth monitoring, manually install: conntrack"
 fi
 
 echo "Network tools installation complete."

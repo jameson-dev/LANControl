@@ -136,6 +136,14 @@
                                class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.dashboard' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                                 Dashboard
                             </a>
+                            <a href="{{ url_for('main.network_map') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.network_map' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
+                                Network Map
+                            </a>
+                            <a href="{{ url_for('main.bandwidth') }}"
+                               class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.bandwidth' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
+                                Bandwidth
+                            </a>
                             <a href="{{ url_for('main.alerts') }}"
                                class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.alerts' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                                 Alerts
@@ -181,6 +189,14 @@
                 <a href="{{ url_for('main.dashboard') }}"
                    class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.dashboard' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                     Dashboard
+                </a>
+                <a href="{{ url_for('main.network_map') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.network_map' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
+                    Network Map
+                </a>
+                <a href="{{ url_for('main.bandwidth') }}"
+                   class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.bandwidth' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
+                    Bandwidth
                 </a>
                 <a href="{{ url_for('main.alerts') }}"
                    class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.alerts' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">

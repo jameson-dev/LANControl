@@ -196,20 +196,15 @@ function displayDevices(devices) {
 
     // Desktop table view
     tbody.innerHTML = devices.map(device => `
-        <tr class="hover:bg-white/5 transition cursor-pointer" data-device-id="${device.id}">
+        <tr class="hover:bg-white/5 transition cursor-pointer ${device.is_favorite ? 'bg-yellow-500/5 border-l-2 border-yellow-500/50' : ''}" data-device-id="${device.id}">
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
                       title="${device.status}">
                 </span>
             </td>
             <td class="px-6 py-4">
-                <div class="flex items-center">
-                    ${device.is_favorite ? '<span class="text-yellow-400 mr-2">★</span>' : ''}
-                    <div>
-                        <div class="text-sm font-medium text-white">
-                            ${device.nickname || device.hostname || '-'}
-                        </div>
-                    </div>
+                <div class="text-sm font-medium text-white">
+                    ${device.nickname || device.hostname || '-'}
                 </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
@@ -246,13 +241,12 @@ function displayDevices(devices) {
 
     // Mobile card view
     cards.innerHTML = devices.map(device => `
-        <div class="device-card glass rounded-lg p-4 hover:glass-hover transition cursor-pointer" data-device-id="${device.id}">
+        <div class="device-card glass rounded-lg p-4 hover:glass-hover transition cursor-pointer ${device.is_favorite ? 'bg-yellow-500/5 border-l-4 border-yellow-500/50' : ''}" data-device-id="${device.id}">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
                           title="${device.status}">
                     </span>
-                    ${device.is_favorite ? '<span class="text-yellow-400">★</span>' : ''}
                     <div class="text-base font-medium text-white">
                         ${device.nickname || device.hostname || '-'}
                     </div>
@@ -420,7 +414,11 @@ function showEditDeviceModal(deviceId) {
     document.getElementById('deviceIp').value = device.ip || '';
     document.getElementById('deviceHostname').value = device.hostname || '';
     document.getElementById('deviceGroup').value = device.group || '';
+    document.getElementById('deviceType').value = device.device_type || '';
     document.getElementById('deviceFavorite').checked = device.is_favorite;
+
+    // Switch to overview tab by default
+    switchTabByName('overview');
 
     document.getElementById('deviceModal').classList.remove('hidden');
 }
@@ -441,6 +439,7 @@ async function saveDevice(e) {
         ip: document.getElementById('deviceIp').value || null,
         hostname: document.getElementById('deviceHostname').value || null,
         group: document.getElementById('deviceGroup').value || null,
+        device_type: document.getElementById('deviceType').value || null,
         is_favorite: document.getElementById('deviceFavorite').checked
     };
 
@@ -710,4 +709,190 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Notes character counter
+    const notesTextarea = document.getElementById('deviceNotes');
+    if (notesTextarea) {
+        notesTextarea.addEventListener('input', function() {
+            document.getElementById('notesCharCount').textContent = `${this.value.length} characters`;
+        });
+    }
 });
+
+/**
+ * V3 Features - Tab Management
+ */
+
+// Switch between tabs in device modal
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+
+    // Remove active from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-blue-500', 'text-white');
+        btn.classList.add('text-gray-400', 'border-transparent');
+    });
+
+    // Show selected tab
+    document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+
+    // Mark button as active
+    event.target.classList.add('active', 'border-blue-500', 'text-white');
+    event.target.classList.remove('text-gray-400', 'border-transparent');
+
+    // Load content for the tab
+    const deviceId = document.getElementById('deviceId').value;
+    if (deviceId) {
+        if (tabName === 'notes') {
+            loadDeviceNotes(deviceId);
+        } else if (tabName === 'ports') {
+            loadDevicePorts(deviceId);
+        }
+    }
+}
+
+// Programmatic tab switching (for modal initialization)
+function switchTabByName(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+
+    // Remove active from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-blue-500', 'text-white');
+        btn.classList.add('text-gray-400', 'border-transparent');
+    });
+
+    // Show selected tab
+    const targetTab = document.getElementById(`${tabName}Tab`);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+    }
+
+    // Mark corresponding button as active
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        if (btn.getAttribute('onclick')?.includes(tabName)) {
+            btn.classList.add('active', 'border-blue-500', 'text-white');
+            btn.classList.remove('text-gray-400', 'border-transparent');
+        }
+    });
+}
+
+// Load device notes from API
+async function loadDeviceNotes(deviceId) {
+    try {
+        const data = await apiCall(`/api/devices/${deviceId}`);
+        const device = data.device;
+
+        document.getElementById('deviceNotes').value = device.notes || '';
+        document.getElementById('devicePurchaseDate').value = device.purchase_date || '';
+        document.getElementById('deviceWarrantyUntil').value = device.warranty_until || '';
+        document.getElementById('notesCharCount').textContent = `${(device.notes || '').length} characters`;
+    } catch (error) {
+        console.error('Error loading device notes:', error);
+    }
+}
+
+// Save device notes
+async function saveDeviceNotes() {
+    const deviceId = document.getElementById('deviceId').value;
+    if (!deviceId) return;
+
+    const notesData = {
+        notes: document.getElementById('deviceNotes').value,
+        purchase_date: document.getElementById('devicePurchaseDate').value || null,
+        warranty_until: document.getElementById('deviceWarrantyUntil').value || null,
+        device_type: document.getElementById('deviceType').value || null
+    };
+
+    try {
+        await apiCall(`/api/devices/${deviceId}/notes`, {
+            method: 'PUT',
+            body: JSON.stringify(notesData)
+        });
+        showToast('Notes saved successfully', 'success');
+    } catch (error) {
+        showToast('Error saving notes: ' + error.message, 'error');
+    }
+}
+
+// Load device ports from API
+async function loadDevicePorts(deviceId) {
+    try {
+        const data = await apiCall(`/api/devices/${deviceId}/ports`);
+        const ports = data.ports || [];
+
+        const portsContent = document.getElementById('portsContent');
+
+        if (ports.length === 0) {
+            portsContent.innerHTML = `
+                <div class="text-gray-400 text-center py-8">
+                    No port scan data available. Click a button above to scan.
+                </div>
+            `;
+            return;
+        }
+
+        portsContent.innerHTML = `
+            <div class="space-y-2">
+                ${ports.map(port => `
+                    <div class="glass-input rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                            <div class="text-white font-medium">Port ${port.port}/${port.protocol}</div>
+                            <div class="text-gray-400 text-sm">${port.service}</div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-900/30 text-green-400 rounded-full text-sm">${port.state}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading ports:', error);
+        document.getElementById('portsContent').innerHTML = `
+            <div class="text-red-400 text-center py-8">
+                Error loading port data
+            </div>
+        `;
+    }
+}
+
+// Scan device ports from modal
+async function scanDevicePortsInModal(scanType) {
+    const deviceId = document.getElementById('deviceId').value;
+    if (!deviceId) return;
+
+    const device = allDevices.find(d => d.id == deviceId);
+    if (!device || !device.ip) {
+        showToast('Device has no IP address', 'error');
+        return;
+    }
+
+    document.getElementById('portsContent').innerHTML = `
+        <div class="text-blue-400 text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+            <div class="mt-2">Scanning ports...</div>
+        </div>
+    `;
+
+    try {
+        const data = await apiCall(`/api/devices/${deviceId}/ports/scan`, {
+            method: 'POST',
+            body: JSON.stringify({ scan_type: scanType })
+        });
+
+        showToast(data.message, 'success');
+        loadDevicePorts(deviceId);
+    } catch (error) {
+        showToast('Error scanning ports: ' + error.message, 'error');
+        document.getElementById('portsContent').innerHTML = `
+            <div class="text-red-400 text-center py-8">
+                Error scanning ports
+            </div>
+        `;
+    }
+}

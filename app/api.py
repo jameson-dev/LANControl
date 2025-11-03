@@ -533,13 +533,6 @@ def scan_device_ports_endpoint(device_id):
         else:
             open_ports = quick_scan_common_ports(device.ip)
 
-        # Get existing ports for this device
-        existing_ports = DevicePort.query.filter_by(device_id=device_id).all()
-        old_ports = [{'port': p.port, 'protocol': p.protocol} for p in existing_ports]
-
-        # Check for port changes
-        check_port_changes(device, open_ports, old_ports)
-
         # Delete old port records
         DevicePort.query.filter_by(device_id=device_id).delete()
 
@@ -767,3 +760,253 @@ def delete_alert_rule(rule_id):
     db.session.commit()
 
     return jsonify({'success': True, 'message': 'Alert rule deleted'})
+
+
+# ============================================================================
+# V3 FEATURES - DEVICE NOTES & DOCUMENTATION
+# ============================================================================
+
+@api_bp.route('/devices/<int:device_id>/notes', methods=['PUT'])
+@login_required
+def update_device_notes(device_id):
+    """Update device notes"""
+    device = Device.query.get_or_404(device_id)
+    data = request.get_json() or {}
+
+    device.notes = data.get('notes', '')
+    device.purchase_date = data.get('purchase_date')
+    device.warranty_until = data.get('warranty_until')
+    device.device_type = data.get('device_type')
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'device': device.to_dict()})
+
+
+# ============================================================================
+# V3 FEATURES - GROUPING & BULK ACTIONS
+# ============================================================================
+
+@api_bp.route('/groups', methods=['GET'])
+@login_required
+def get_groups():
+    """Get all groups with device counts"""
+    from sqlalchemy import func
+
+    groups = db.session.query(
+        Device.group,
+        func.count(Device.id).label('count'),
+        func.sum(db.case((Device.status == 'online', 1), else_=0)).label('online')
+    ).filter(
+        Device.group.isnot(None)
+    ).group_by(Device.group).all()
+
+    return jsonify({
+        'success': True,
+        'groups': [
+            {
+                'name': g[0],
+                'total': g[1],
+                'online': g[2] or 0
+            }
+            for g in groups
+        ]
+    })
+
+
+@api_bp.route('/devices/bulk/wake', methods=['POST'])
+@login_required
+def bulk_wake_devices():
+    """Wake multiple devices"""
+    data = request.get_json() or {}
+    device_ids = data.get('device_ids', [])
+
+    if not device_ids:
+        return jsonify({'success': False, 'message': 'No devices specified'}), 400
+
+    results = []
+    for device_id in device_ids:
+        device = Device.query.get(device_id)
+        if device and device.mac:
+            try:
+                send_wol_packet(device.mac)
+                results.append({'id': device_id, 'success': True})
+            except Exception as e:
+                results.append({'id': device_id, 'success': False, 'error': str(e)})
+
+    return jsonify({'success': True, 'results': results})
+
+
+@api_bp.route('/devices/bulk/group', methods=['POST'])
+@login_required
+def bulk_assign_group():
+    """Assign group to multiple devices"""
+    data = request.get_json() or {}
+    device_ids = data.get('device_ids', [])
+    group_name = data.get('group')
+
+    if not device_ids:
+        return jsonify({'success': False, 'message': 'No devices specified'}), 400
+
+    devices = Device.query.filter(Device.id.in_(device_ids)).all()
+    for device in devices:
+        device.group = group_name
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'updated': len(devices)})
+
+
+@api_bp.route('/devices/bulk/favorite', methods=['POST'])
+@login_required
+def bulk_toggle_favorite():
+    """Toggle favorite for multiple devices"""
+    data = request.get_json() or {}
+    device_ids = data.get('device_ids', [])
+    is_favorite = data.get('is_favorite', True)
+
+    if not device_ids:
+        return jsonify({'success': False, 'message': 'No devices specified'}), 400
+
+    devices = Device.query.filter(Device.id.in_(device_ids)).all()
+    for device in devices:
+        device.is_favorite = is_favorite
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'updated': len(devices)})
+
+
+# ============================================================================
+# V3 FEATURES - NETWORK TOPOLOGY
+# ============================================================================
+
+@api_bp.route('/topology', methods=['GET'])
+@login_required
+def get_topology():
+    """Get complete network topology"""
+    from app.topology import get_topology_graph
+
+    graph = get_topology_graph()
+    return jsonify({'success': True, 'topology': graph})
+
+
+@api_bp.route('/topology/discover', methods=['POST'])
+@login_required
+def discover_topology():
+    """Trigger topology discovery"""
+    from app.topology import discover_topology
+
+    Thread(target=discover_topology).start()
+
+    return jsonify({'success': True, 'message': 'Topology discovery started'})
+
+
+@api_bp.route('/topology/position', methods=['PUT'])
+@login_required
+def update_topology_position():
+    """Update device position in topology map"""
+    from app.topology import update_device_position
+
+    data = request.get_json() or {}
+    device_id = data.get('device_id')
+    x = data.get('x', 0)
+    y = data.get('y', 0)
+
+    if not device_id:
+        return jsonify({'success': False, 'message': 'Device ID required'}), 400
+
+    update_device_position(device_id, x, y)
+
+    return jsonify({'success': True})
+
+
+@api_bp.route('/topology/connection', methods=['PUT'])
+@login_required
+def update_topology_connection():
+    """Set manual connection between devices"""
+    from app.topology import set_device_connection
+
+    data = request.get_json() or {}
+    device_id = data.get('device_id')
+    connected_to_id = data.get('connected_to_id')
+    connection_type = data.get('connection_type', 'ethernet')
+
+    if not device_id:
+        return jsonify({'success': False, 'message': 'Device ID required'}), 400
+
+    set_device_connection(device_id, connected_to_id, connection_type)
+
+    return jsonify({'success': True})
+
+
+# ============================================================================
+# V3 FEATURES - BANDWIDTH MONITORING
+# ============================================================================
+
+@api_bp.route('/bandwidth/device/<int:device_id>', methods=['GET'])
+@login_required
+def get_device_bandwidth(device_id):
+    """Get bandwidth history for a device"""
+    from app.bandwidth import get_device_bandwidth as get_bandwidth
+
+    hours = request.args.get('hours', 24, type=int)
+    data = get_bandwidth(device_id, hours)
+
+    return jsonify({'success': True, 'bandwidth': data})
+
+
+@api_bp.route('/bandwidth/top', methods=['GET'])
+@login_required
+def get_top_bandwidth_users():
+    """Get top bandwidth users"""
+    from app.bandwidth import get_top_bandwidth_users as get_top_users
+
+    limit = request.args.get('limit', 10, type=int)
+    hours = request.args.get('hours', 24, type=int)
+
+    data = get_top_users(limit, hours)
+
+    return jsonify({'success': True, 'top_users': data})
+
+
+@api_bp.route('/bandwidth/collect', methods=['POST'])
+@login_required
+def collect_bandwidth():
+    """Trigger bandwidth collection (admin)"""
+    from app.bandwidth import collect_bandwidth_data
+
+    Thread(target=collect_bandwidth_data).start()
+
+    return jsonify({'success': True, 'message': 'Bandwidth collection started'})
+
+
+@api_bp.route('/bandwidth/total', methods=['GET'])
+@login_required
+def get_total_bandwidth():
+    """Get network-wide bandwidth stats"""
+    from app.models import BandwidthUsage
+    from sqlalchemy import func
+    from datetime import timedelta
+
+    hours = request.args.get('hours', 24, type=int)
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+
+    stats = db.session.query(
+        func.sum(BandwidthUsage.bytes_sent).label('total_sent'),
+        func.sum(BandwidthUsage.bytes_received).label('total_received'),
+        func.count(func.distinct(BandwidthUsage.device_id)).label('active_devices')
+    ).filter(
+        BandwidthUsage.timestamp >= cutoff
+    ).first()
+
+    return jsonify({
+        'success': True,
+        'stats': {
+            'total_sent': int(stats[0]) if stats[0] else 0,
+            'total_received': int(stats[1]) if stats[1] else 0,
+            'total_bytes': int(stats[0] or 0) + int(stats[1] or 0),
+            'active_devices': stats[2] or 0,
+            'hours': hours
+        }
+    })

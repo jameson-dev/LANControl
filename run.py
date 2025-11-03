@@ -12,7 +12,7 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 
 from app import create_app
-from app.models import db, User, DevicePort, DeviceAlert, AlertRule
+from app.models import db, User, DevicePort, DeviceAlert, AlertRule, NetworkTopology, BandwidthUsage
 from config import Config
 
 

@@ -126,64 +126,149 @@
 
 <!-- Add/Edit Device Modal -->
 <div id="deviceModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div class="glass rounded-lg p-6 max-w-md w-full mx-4">
+    <div class="glass rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <h3 class="text-xl font-bold text-white mb-4" id="modalTitle">Add Device</h3>
-        <form id="deviceForm" class="space-y-4">
-            <input type="hidden" id="deviceId">
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">MAC Address *</label>
-                <input type="text"
-                       id="deviceMac"
-                       placeholder="XX:XX:XX:XX:XX:XX"
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400"
-                       required>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-white/10 mb-4" id="deviceTabs">
+            <button onclick="switchTab('overview')" class="tab-btn active px-4 py-2 text-sm font-medium text-white border-b-2 border-blue-500 transition">
+                Overview
+            </button>
+            <button onclick="switchTab('notes')" id="notesTab" class="tab-btn px-4 py-2 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent hover:border-gray-500 transition">
+                Notes
+            </button>
+            <button onclick="switchTab('ports')" id="portsTab" class="tab-btn px-4 py-2 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent hover:border-gray-500 transition">
+                Ports
+            </button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overviewTab" class="tab-content">
+            <form id="deviceForm" class="space-y-4">
+                <input type="hidden" id="deviceId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">MAC Address *</label>
+                        <input type="text"
+                               id="deviceMac"
+                               placeholder="XX:XX:XX:XX:XX:XX"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400"
+                               required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Nickname</label>
+                        <input type="text"
+                               id="deviceNickname"
+                               placeholder="Living Room TV"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">IP Address</label>
+                        <input type="text"
+                               id="deviceIp"
+                               placeholder="192.168.1.100"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Hostname</label>
+                        <input type="text"
+                               id="deviceHostname"
+                               placeholder="device.local"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Group</label>
+                        <input type="text"
+                               id="deviceGroup"
+                               placeholder="Living Room"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Device Type</label>
+                        <input type="text"
+                               id="deviceType"
+                               placeholder="Router, PC, IoT, etc."
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="deviceFavorite" class="form-checkbox h-5 w-5 text-blue-600">
+                        <span class="text-sm text-gray-300">Add to favorites</span>
+                    </label>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 px-4 py-2 glass bg-blue-600/20 hover:bg-blue-600/30 text-white rounded-lg font-medium transition">
+                        Save
+                    </button>
+                    <button type="button"
+                            onclick="closeDeviceModal()"
+                            class="flex-1 px-4 py-2 glass bg-gray-600/20 hover:bg-gray-600/30 text-white rounded-lg font-medium transition">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Notes Tab -->
+        <div id="notesTab" class="tab-content hidden">
+            <form id="notesForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Device Notes</label>
+                    <textarea id="deviceNotes"
+                              rows="8"
+                              placeholder="Add notes, documentation, specifications, etc."
+                              class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 resize-none"></textarea>
+                    <div class="text-xs text-gray-400 mt-1" id="notesCharCount">0 characters</div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Purchase Date</label>
+                        <input type="date"
+                               id="devicePurchaseDate"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Warranty Until</label>
+                        <input type="date"
+                               id="deviceWarrantyUntil"
+                               class="w-full px-3 py-2 glass-input rounded-lg text-white">
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="button"
+                            onclick="saveDeviceNotes()"
+                            class="flex-1 px-4 py-2 glass bg-blue-600/20 hover:bg-blue-600/30 text-white rounded-lg font-medium transition">
+                        Save Notes
+                    </button>
+                    <button type="button"
+                            onclick="closeDeviceModal()"
+                            class="flex-1 px-4 py-2 glass bg-gray-600/20 hover:bg-gray-600/30 text-white rounded-lg font-medium transition">
+                        Close
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ports Tab -->
+        <div id="portsTab" class="tab-content hidden">
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <button onclick="scanDevicePortsInModal('quick')"
+                            class="flex-1 px-4 py-2 glass bg-purple-600/20 hover:bg-purple-600/30 text-white rounded-lg font-medium transition">
+                        Quick Scan
+                    </button>
+                    <button onclick="scanDevicePortsInModal('full')"
+                            class="flex-1 px-4 py-2 glass bg-purple-600/20 hover:bg-purple-600/30 text-white rounded-lg font-medium transition">
+                        Full Scan
+                    </button>
+                </div>
+                <div id="portsContent" class="text-gray-400 text-center py-8">
+                    No port scan data available. Click a button above to scan.
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Nickname</label>
-                <input type="text"
-                       id="deviceNickname"
-                       placeholder="Living Room TV"
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">IP Address</label>
-                <input type="text"
-                       id="deviceIp"
-                       placeholder="192.168.1.100"
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Hostname</label>
-                <input type="text"
-                       id="deviceHostname"
-                       placeholder="device.local"
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Group</label>
-                <input type="text"
-                       id="deviceGroup"
-                       placeholder="Living Room"
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
-            </div>
-            <div>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="deviceFavorite" class="form-checkbox h-5 w-5 text-blue-600">
-                    <span class="text-sm text-gray-300">Add to favorites</span>
-                </label>
-            </div>
-            <div class="flex space-x-3 pt-4">
-                <button type="submit"
-                        class="flex-1 px-4 py-2 glass bg-blue-600/20 hover:bg-blue-600/30 text-white rounded-lg font-medium transition">
-                    Save
-                </button>
-                <button type="button"
-                        onclick="closeDeviceModal()"
-                        class="flex-1 px-4 py-2 glass bg-gray-600/20 hover:bg-gray-600/30 text-white rounded-lg font-medium transition">
-                    Cancel
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 

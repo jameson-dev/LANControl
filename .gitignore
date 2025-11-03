@@ -187,3 +187,4 @@ cython_debug/
 data/
 *.db
 mac_vendors.json
+CLAUDE.md

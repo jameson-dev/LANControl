@@ -7,6 +7,51 @@ from config import Config
 scheduler = BackgroundScheduler()
 
 
+# ============================================================================
+# V3 SCHEDULER JOBS
+# ============================================================================
+
+def collect_bandwidth_job():
+    """Collect bandwidth data for all devices"""
+    print(f"[{datetime.utcnow()}] Collecting bandwidth data...")
+
+    try:
+        with scheduler.app.app_context():
+            from app.bandwidth import collect_bandwidth_data
+            collect_bandwidth_data()
+    except Exception as e:
+        print(f"Error in bandwidth collection: {e}")
+
+
+def discover_topology_job():
+    """Discover network topology"""
+    print(f"[{datetime.utcnow()}] Discovering network topology...")
+
+    try:
+        with scheduler.app.app_context():
+            from app.topology import discover_topology
+            discover_topology()
+    except Exception as e:
+        print(f"Error in topology discovery: {e}")
+
+
+def cleanup_bandwidth_job():
+    """Clean up old bandwidth data"""
+    print(f"[{datetime.utcnow()}] Cleaning up old bandwidth data...")
+
+    try:
+        with scheduler.app.app_context():
+            from app.bandwidth import cleanup_old_bandwidth_data
+            cleanup_old_bandwidth_data(days=30)
+    except Exception as e:
+        print(f"Error in bandwidth cleanup: {e}")
+
+
+# ============================================================================
+# EXISTING SCHEDULER JOBS
+# ============================================================================
+
+
 def scheduled_network_scan():
     """
     Perform a scheduled network scan.
@@ -177,6 +222,39 @@ def init_scheduler(app):
         minute=0,
         id='history_cleanup',
         name='History Cleanup',
+        replace_existing=True
+    )
+
+    # V3: Collect bandwidth data every 5 minutes
+    scheduler.add_job(
+        func=collect_bandwidth_job,
+        trigger='interval',
+        minutes=5,
+        id='bandwidth_collection',
+        name='Bandwidth Collection',
+        replace_existing=True
+    )
+
+    # V3: Discover topology once per day
+    scheduler.add_job(
+        func=discover_topology_job,
+        trigger='cron',
+        hour=4,
+        minute=0,
+        id='topology_discovery',
+        name='Topology Discovery',
+        replace_existing=True
+    )
+
+    # V3: Cleanup old bandwidth data weekly
+    scheduler.add_job(
+        func=cleanup_bandwidth_job,
+        trigger='cron',
+        day_of_week='sun',
+        hour=3,
+        minute=30,
+        id='bandwidth_cleanup',
+        name='Bandwidth Cleanup',
         replace_existing=True
     )
 

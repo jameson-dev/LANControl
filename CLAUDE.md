@@ -3,6 +3,9 @@
 ## Project Overview
 A Python web application for home LAN device management with network scanning, Wake-on-LAN capabilities, and device monitoring.
 
+## Code Rules
+Don't add documentation for everything. Have a documentation that is updates as features are added/removed/changed.
+
 ## Tech Stack
 
 ### Backend

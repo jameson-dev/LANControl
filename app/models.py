@@ -36,6 +36,10 @@ class Device(db.Model):
     is_favorite = db.Column(db.Boolean, default=False)
     is_manual = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)  # Rich text notes
+    purchase_date = db.Column(db.Date, nullable=True)
+    warranty_until = db.Column(db.Date, nullable=True)
+    device_type = db.Column(db.String(50), nullable=True)  # Custom device type
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -73,6 +77,10 @@ class Device(db.Model):
             'last_seen': self.last_seen.isoformat() + 'Z' if self.last_seen else None,
             'status': self.status,
             'vendor': self.vendor,
+            'notes': self.notes,
+            'purchase_date': self.purchase_date.isoformat() if self.purchase_date else None,
+            'warranty_until': self.warranty_until.isoformat() if self.warranty_until else None,
+            'device_type': self.device_type,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
@@ -226,3 +234,65 @@ class AlertRule(db.Model):
 
     def __repr__(self):
         return f'<AlertRule {self.name}>'
+
+
+class NetworkTopology(db.Model):
+    """Network topology connections between devices"""
+    __tablename__ = 'network_topology'
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('devices.id'), nullable=False)
+    connected_to_id = db.Column(db.Integer, db.ForeignKey('devices.id'), nullable=True)  # Parent device (router/switch)
+    connection_type = db.Column(db.String(20), default='ethernet')  # ethernet, wifi, unknown
+    position_x = db.Column(db.Integer, default=0)  # X position for visual map
+    position_y = db.Column(db.Integer, default=0)  # Y position for visual map
+    discovered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'connected_to_id': self.connected_to_id,
+            'connection_type': self.connection_type,
+            'position_x': self.position_x,
+            'position_y': self.position_y,
+            'discovered_at': self.discovered_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
+        }
+
+    def __repr__(self):
+        return f'<NetworkTopology device={self.device_id} -> {self.connected_to_id}>'
+
+
+class BandwidthUsage(db.Model):
+    """Track bandwidth usage per device over time"""
+    __tablename__ = 'bandwidth_usage'
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('devices.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    bytes_sent = db.Column(db.BigInteger, default=0)  # Bytes sent
+    bytes_received = db.Column(db.BigInteger, default=0)  # Bytes received
+    packets_sent = db.Column(db.Integer, default=0)
+    packets_received = db.Column(db.Integer, default=0)
+    active_connections = db.Column(db.Integer, default=0)
+
+    __table_args__ = (
+        db.Index('idx_bandwidth_device_time', 'device_id', 'timestamp'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'device_id': self.device_id,
+            'timestamp': self.timestamp.isoformat(),
+            'bytes_sent': self.bytes_sent,
+            'bytes_received': self.bytes_received,
+            'packets_sent': self.packets_sent,
+            'packets_received': self.packets_received,
+            'active_connections': self.active_connections
+        }
+
+    def __repr__(self):
+        return f'<BandwidthUsage device={self.device_id} at {self.timestamp}>'

@@ -72,14 +72,28 @@ fi
 echo "Running database migration..."
 echo "----------------------------------------"
 
-# Activate venv and run migration
-if source venv/bin/activate; then
-    python run.py migrate-db
-    MIGRATION_STATUS=$?
-    deactivate
+# Check if V3 migration exists
+if [ -f "migrate_v3.py" ]; then
+    echo "V3 migration script found, running V3 migration..."
+    if source venv/bin/activate; then
+        python migrate_v3.py
+        MIGRATION_STATUS=$?
+        deactivate
+    else
+        echo "❌ Failed to activate virtual environment!"
+        exit 1
+    fi
 else
-    echo "❌ Failed to activate virtual environment!"
-    exit 1
+    echo "Running standard migration..."
+    # Activate venv and run migration
+    if source venv/bin/activate; then
+        python run.py migrate-db
+        MIGRATION_STATUS=$?
+        deactivate
+    else
+        echo "❌ Failed to activate virtual environment!"
+        exit 1
+    fi
 fi
 
 echo "----------------------------------------"
@@ -91,10 +105,12 @@ if [ $MIGRATION_STATUS -eq 0 ]; then
     echo ""
 
     # Show new tables
-    echo "New tables added:"
+    echo "Database tables available:"
     echo "  - device_ports (for port scan results)"
     echo "  - device_alerts (for alert history)"
     echo "  - alert_rules (for notification rules)"
+    echo "  - network_topology (for network map) [V3]"
+    echo "  - bandwidth_usage (for bandwidth monitoring) [V3]"
     echo ""
 
     # Restart service if it was running
@@ -123,20 +139,27 @@ if [ $MIGRATION_STATUS -eq 0 ]; then
     echo ""
     echo "Next steps:"
     echo "1. Visit your LANControl web interface"
-    echo "2. Go to Settings → Email Notifications"
-    echo "3. Configure SMTP settings (if you want email alerts)"
-    echo "4. Go to Settings → Alert Rules"
-    echo "5. Create alert rules for device monitoring"
-    echo "6. Visit Alerts page to see notifications"
+    echo "2. Device notes now available in device edit modal"
+    echo "3. Check bandwidth monitoring (requires conntrack package)"
+    echo "4. Network topology will be discovered automatically"
+    echo "5. Use bulk actions with multi-select (coming in UI update)"
     echo ""
     echo "Backup location: $BACKUP_FILE"
     echo ""
-    echo "New Features in V2:"
-    echo "  🔍 Port Scanning - Click the purple icon on devices"
-    echo "  🔔 Alerts System - View in the Alerts page"
+    echo "Features Available:"
+    echo "  🔍 Port Scanning - Scan device ports"
+    echo "  🔔 Alerts System - Device notifications"
     echo "  📧 Email Notifications - Configure in Settings"
-    echo "  🔗 Webhooks - Discord, Slack, custom integrations"
-    echo "  💻 Desktop Notifications - Enable in Alerts page"
+    echo "  🔗 Webhooks - Discord, Slack integrations"
+    echo "  💻 Desktop Notifications - Browser alerts"
+    echo ""
+    echo "V3 Features (Backend Ready):"
+    echo "  📝 Device Notes - Document your devices"
+    echo "  🗂️  Enhanced Grouping - Bulk actions API ready"
+    echo "  🗺️  Network Topology - Auto-discovery enabled"
+    echo "  📊 Bandwidth Monitoring - Collecting every 5 minutes"
+    echo ""
+    echo "Note: V3 frontend UI coming soon!"
     echo ""
 
 else
