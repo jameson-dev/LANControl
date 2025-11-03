@@ -177,11 +177,11 @@ function displayAlerts(alerts) {
             'port_change': 'Port Change'
         };
 
-        const borderClass = severityColors[alert.severity] || 'border-gray-700';
+        const borderClass = severityColors[alert.severity] || 'border-white/10';
         const opacity = alert.is_read ? 'opacity-60' : '';
 
         return `
-            <div class="bg-dark-card border-l-4 ${borderClass} rounded-lg p-4 ${opacity} transition-opacity">
+            <div class="glass border-l-4 ${borderClass} rounded-lg p-4 ${opacity} transition-opacity hover:glass-hover">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2">

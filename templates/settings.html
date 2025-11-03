@@ -7,7 +7,7 @@
     <h2 class="text-2xl sm:text-3xl font-bold text-white">Settings</h2>
 
     <!-- Scan Settings -->
-    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+    <div class="glass rounded-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Network Scanning</h3>
         <form id="scanSettingsForm" class="space-y-4">
             <div>
@@ -17,7 +17,7 @@
                 <input type="text"
                        id="scanRange"
                        placeholder="192.168.1.0/24"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">Network range to scan for devices</p>
             </div>
 
@@ -30,7 +30,7 @@
                        min="60"
                        max="3600"
                        placeholder="300"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">How often to automatically scan the network (60-3600 seconds)</p>
             </div>
 
@@ -52,7 +52,7 @@
                        min="1"
                        max="365"
                        placeholder="30"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">How long to keep device history records</p>
             </div>
 
@@ -64,7 +64,7 @@
     </div>
 
     <!-- Email Notification Settings -->
-    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+    <div class="glass rounded-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Email Notifications</h3>
         <form id="emailSettingsForm" class="space-y-4">
             <div>
@@ -74,7 +74,7 @@
                 <input type="text"
                        id="smtpServer"
                        placeholder="smtp.gmail.com"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">SMTP server address</p>
             </div>
 
@@ -85,7 +85,7 @@
                 <input type="number"
                        id="smtpPort"
                        placeholder="587"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">Usually 587 for TLS or 465 for SSL</p>
             </div>
 
@@ -96,7 +96,7 @@
                 <input type="text"
                        id="smtpUsername"
                        placeholder="your-email@gmail.com"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <div>
@@ -106,7 +106,7 @@
                 <input type="password"
                        id="smtpPassword"
                        placeholder="••••••••"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">For Gmail, use an App Password</p>
             </div>
 
@@ -117,7 +117,7 @@
                 <input type="email"
                        id="smtpFrom"
                        placeholder="LANControl <alerts@yourdomain.com>"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">Optional, defaults to username</p>
             </div>
 
@@ -128,7 +128,7 @@
                 <input type="email"
                        id="alertEmail"
                        placeholder="alerts@yourdomain.com"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-sm text-gray-400 mt-1">Where to send alert notifications</p>
             </div>
 
@@ -140,7 +140,7 @@
     </div>
 
     <!-- Alert Rules -->
-    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+    <div class="glass rounded-lg p-4 sm:p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg sm:text-xl font-bold text-white">Alert Rules</h3>
             <button onclick="showAddRuleModal()"
@@ -156,7 +156,7 @@
     </div>
 
     <!-- Security Settings -->
-    <div class="bg-dark-card rounded-lg p-4 sm:p-6 border border-gray-700">
+    <div class="glass rounded-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-white mb-4">Security</h3>
         <form id="passwordForm" class="space-y-4">
             <div>
@@ -165,7 +165,7 @@
                 </label>
                 <input type="password"
                        id="currentPassword"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                        required>
             </div>
 
@@ -175,7 +175,7 @@
                 </label>
                 <input type="password"
                        id="newPassword"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                        required>
                 <p class="text-sm text-gray-400 mt-1">Minimum 6 characters</p>
             </div>
@@ -186,7 +186,7 @@
                 </label>
                 <input type="password"
                        id="confirmPassword"
-                       class="w-full max-w-md px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full max-w-md px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                        required>
             </div>
 
@@ -229,14 +229,14 @@
                 <input type="text"
                        id="ruleName"
                        placeholder="Critical Devices Offline"
-                       class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                        required>
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">Event Type *</label>
                 <select id="ruleEventType"
-                        class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 glass-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required>
                     <option value="device_offline">Device Goes Offline</option>
                     <option value="device_online">Device Comes Online</option>
@@ -248,7 +248,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">Device Filter</label>
                 <select id="ruleDeviceFilter"
-                        class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full px-3 py-2 glass-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Devices</option>
                     <option value="favorites">Favorites Only</option>
                 </select>
@@ -272,7 +272,7 @@
                 <input type="url"
                        id="ruleWebhookUrl"
                        placeholder="https://discord.com/api/webhooks/..."
-                       class="w-full px-3 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-xs text-gray-400 mt-1">Discord, Slack, or custom webhook URL</p>
             </div>
 

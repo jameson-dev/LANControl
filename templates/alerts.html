@@ -24,34 +24,34 @@
 
     <!-- Alert Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
             <div class="text-gray-400 text-xs sm:text-sm">Total Alerts</div>
             <div class="text-2xl sm:text-3xl font-bold text-white mt-1" id="stat-total">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
             <div class="text-gray-400 text-xs sm:text-sm">Unread</div>
             <div class="text-2xl sm:text-3xl font-bold text-blue-400 mt-1" id="stat-unread">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
             <div class="text-gray-400 text-xs sm:text-sm">Critical</div>
             <div class="text-2xl sm:text-3xl font-bold text-red-400 mt-1" id="stat-critical">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
             <div class="text-gray-400 text-xs sm:text-sm">Warning</div>
             <div class="text-2xl sm:text-3xl font-bold text-yellow-400 mt-1" id="stat-warning">-</div>
         </div>
-        <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+        <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
             <div class="text-gray-400 text-xs sm:text-sm">Info</div>
             <div class="text-2xl sm:text-3xl font-bold text-gray-400 mt-1" id="stat-info">-</div>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-dark-card rounded-lg p-3 sm:p-4 border border-gray-700">
+    <div class="glass rounded-lg p-3 sm:p-4 border border-white/10">
         <div class="flex flex-col sm:flex-row gap-3">
             <select id="typeFilter"
                     onchange="loadAlerts()"
-                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 glass-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Types</option>
                 <option value="status_change">Status Change</option>
                 <option value="new_device">New Device</option>
@@ -59,13 +59,13 @@
             </select>
             <select id="severityFilter"
                     onchange="loadAlerts()"
-                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 glass-input rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">All Severities</option>
                 <option value="critical">Critical</option>
                 <option value="warning">Warning</option>
                 <option value="info">Info</option>
             </select>
-            <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg cursor-pointer">
+            <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 glass-input rounded-lg cursor-pointer">
                 <input type="checkbox" id="unreadOnly" onchange="loadAlerts()" class="form-checkbox h-5 w-5 text-blue-600">
                 <span class="text-white text-sm sm:text-base">Unread Only</span>
             </label>

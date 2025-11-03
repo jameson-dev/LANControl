@@ -260,7 +260,7 @@ function displayDevices(devices) {
 
     // Mobile card view
     cards.innerHTML = devices.map(device => `
-        <div class="bg-dark-card border border-gray-700 rounded-lg p-4">
+        <div class="glass rounded-lg p-4 hover:glass-hover transition">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-2">
                     <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
@@ -574,7 +574,7 @@ function showPortScanResults(device, ports, deviceType) {
     const deviceName = device.nickname || device.hostname || device.mac;
 
     modal.innerHTML = `
-        <div class="bg-dark-card rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700 max-h-[80vh] overflow-y-auto">
+        <div class="glass rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-4">
                 <div>
                     <h3 class="text-xl font-bold text-white">Port Scan Results</h3>
@@ -591,7 +591,7 @@ function showPortScanResults(device, ports, deviceType) {
             ` : `
                 <div class="space-y-2">
                     ${ports.map(port => `
-                        <div class="bg-dark-bg border border-gray-700 rounded-lg p-3 flex justify-between items-center">
+                        <div class="glass-input rounded-lg p-3 flex justify-between items-center">
                             <div>
                                 <div class="text-white font-medium">Port ${port.port}/${port.protocol}</div>
                                 <div class="text-gray-400 text-sm">${port.service}</div>

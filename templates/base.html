@@ -22,9 +22,58 @@
         }
     </script>
     <style>
+        /* Glassmorphism Base */
         body {
-            background-color: #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            background-attachment: fixed;
+            position: relative;
         }
+
+        /* Animated background gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Glassmorphism Card */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-hover:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Glassmorphism Input */
+        .glass-input {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-input:focus {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: rgba(59, 130, 246, 0.5);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
         .status-online {
             background-color: #10b981;
         }
@@ -34,13 +83,19 @@
         .status-unknown {
             background-color: #6b7280;
         }
+
+        /* Main content positioning */
+        main {
+            position: relative;
+            z-index: 1;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-dark-bg text-gray-100 min-h-screen">
     <!-- Navigation -->
     {% if current_user.is_authenticated %}
-    <nav class="bg-dark-card border-b border-gray-700">
+    <nav class="glass border-b border-white/10 relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center flex-1">
@@ -50,15 +105,15 @@
                     <div class="hidden md:block ml-10">
                         <div class="flex items-baseline space-x-4">
                             <a href="{{ url_for('main.dashboard') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                               class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.dashboard' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                                 Dashboard
                             </a>
                             <a href="{{ url_for('main.alerts') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.alerts' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                               class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.alerts' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                                 Alerts
                             </a>
                             <a href="{{ url_for('main.settings') }}"
-                               class="px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                               class="px-3 py-2 rounded-md text-sm font-medium transition {% if request.endpoint == 'main.settings' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                                 Settings
                             </a>
                         </div>
@@ -73,7 +128,7 @@
                     </a>
                     <span class="text-gray-400 text-sm">{{ current_user.username }}</span>
                     <a href="{{ url_for('auth.logout') }}"
-                       class="px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-dark-hover hover:text-white">
+                       class="px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:glass-hover hover:text-white transition">
                         Logout
                     </a>
                 </div>
@@ -93,24 +148,24 @@
             </div>
         </div>
         <!-- Mobile menu -->
-        <div id="mobileMenu" class="hidden md:hidden border-t border-gray-700">
+        <div id="mobileMenu" class="hidden md:hidden border-t border-white/10">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 <a href="{{ url_for('main.dashboard') }}"
-                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.dashboard' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                   class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.dashboard' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                     Dashboard
                 </a>
                 <a href="{{ url_for('main.alerts') }}"
-                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.alerts' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                   class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.alerts' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                     Alerts
                 </a>
                 <a href="{{ url_for('main.settings') }}"
-                   class="block px-3 py-2 rounded-md text-base font-medium {% if request.endpoint == 'main.settings' %}bg-dark-hover text-white{% else %}text-gray-300 hover:bg-dark-hover hover:text-white{% endif %}">
+                   class="block px-3 py-2 rounded-md text-base font-medium transition {% if request.endpoint == 'main.settings' %}glass text-white{% else %}text-gray-300 hover:glass-hover hover:text-white{% endif %}">
                     Settings
                 </a>
-                <div class="border-t border-gray-700 my-2"></div>
+                <div class="border-t border-white/10 my-2"></div>
                 <div class="px-3 py-2 text-gray-400 text-sm">{{ current_user.username }}</div>
                 <a href="{{ url_for('auth.logout') }}"
-                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-dark-hover hover:text-white">
+                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:glass-hover hover:text-white transition">
                     Logout
                 </a>
             </div>
@@ -139,7 +194,7 @@
                 info: 'bg-blue-600'
             };
 
-            toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
+            toast.className = `glass ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-x-full`;
             toast.textContent = message;
 
             container.appendChild(toast);

@@ -223,7 +223,7 @@ function displayAlertRules(rules) {
     };
 
     container.innerHTML = rules.map(rule => `
-        <div class="bg-dark-bg border border-gray-700 rounded-lg p-4">
+        <div class="bg-dark-bg border border-white/10 rounded-lg p-4">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
