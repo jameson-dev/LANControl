@@ -19,7 +19,10 @@ COMMON_PORTS = {
     443: 'HTTPS',
     445: 'SMB',
     548: 'AFP',
+    554: 'RTSP',
     631: 'IPP/CUPS',
+    161: 'SNMP',
+    162: 'SNMP-Trap',
     993: 'IMAPS',
     995: 'POP3S',
     1433: 'MSSQL',
@@ -39,7 +42,8 @@ COMMON_PORTS = {
 
 # Device type detection based on port combinations
 DEVICE_TYPE_SIGNATURES = {
-    'router': {80, 443, 53},
+    'router': {80, 443, 53, 161},  # HTTP, HTTPS, DNS, SNMP
+    'switch': {80, 443, 161, 23},  # Managed switches often have SNMP and Telnet
     'nas': {80, 443, 445, 548, 22},
     'printer': {631, 9100, 80},
     'web_server': {80, 443},

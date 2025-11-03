@@ -27,6 +27,11 @@ def discover_topology():
             print(f"Gateway {gateway_ip} not in device database")
             return
 
+        # Mark gateway as router if not already set
+        if not gateway_device.device_type or gateway_device.device_type == 'unknown':
+            gateway_device.device_type = 'router'
+            db.session.commit()
+
         # Get all devices
         devices = Device.query.all()
 
@@ -126,10 +131,16 @@ def get_topology_graph():
     devices = Device.query.all()
     topologies = NetworkTopology.query.all()
 
+    # Get gateway IP to mark it specially
+    gateway_ip = get_default_gateway()
+
     # Build nodes
     nodes = []
     for device in devices:
         topology = next((t for t in topologies if t.device_id == device.id), None)
+
+        # Check if this device is the gateway
+        is_gateway = (gateway_ip and device.ip == gateway_ip)
 
         nodes.append({
             'id': device.id,
@@ -139,6 +150,7 @@ def get_topology_graph():
             'status': device.status,
             'device_type': device.device_type or 'unknown',
             'vendor': device.vendor,
+            'is_gateway': is_gateway,
             'x': topology.position_x if topology else 0,
             'y': topology.position_y if topology else 0
         })

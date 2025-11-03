@@ -134,9 +134,28 @@ function renderTopology(topology) {
 
         const color = statusColors[node.status] || '#6b7280';
 
+        // Determine node shape based on device type
+        let nodeShape = 'dot';
+        let nodeSize = 16;
+        if (node.is_gateway || node.device_type === 'router') {
+            nodeShape = 'diamond';
+            nodeSize = 20;
+        } else if (node.device_type === 'switch') {
+            nodeShape = 'box';
+            nodeSize = 18;
+        } else if (node.device_type === 'nas' || node.device_type === 'web_server') {
+            nodeShape = 'database';
+            nodeSize = 16;
+        } else if (node.device_type === 'printer') {
+            nodeShape = 'square';
+            nodeSize = 14;
+        }
+
         nodes.add({
             id: node.id,
             label: node.label,
+            shape: nodeShape,
+            size: nodeSize,
             color: {
                 background: color,
                 border: node.is_gateway ? '#fbbf24' : color,
@@ -147,7 +166,7 @@ function renderTopology(topology) {
             },
             x: node.x || undefined,
             y: node.y || undefined,
-            title: `${node.label}\nStatus: ${node.status}`,
+            title: `${node.label}\nType: ${node.device_type || 'unknown'}\nStatus: ${node.status}`,
             borderWidth: node.is_gateway ? 4 : 2
         });
     });

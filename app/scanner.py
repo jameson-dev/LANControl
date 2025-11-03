@@ -11,6 +11,86 @@ _last_scan_time = None
 _last_scan_results = []
 
 
+def get_local_ip():
+    """
+    Get the local machine's IP address.
+
+    Returns:
+        str: Local IP address or None
+    """
+    try:
+        # Create a dummy socket to determine local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return None
+
+
+def get_local_mac():
+    """
+    Get the local machine's MAC address.
+
+    Returns:
+        str: MAC address or None
+    """
+    try:
+        # Get all network interfaces
+        result = subprocess.run(
+            ['/bin/ip', 'link', 'show'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode != 0:
+            return None
+
+        # Find the interface with an IP (not loopback)
+        local_ip = get_local_ip()
+        if not local_ip:
+            return None
+
+        # Get the interface name for our IP
+        ip_result = subprocess.run(
+            ['/bin/ip', 'addr', 'show'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        current_interface = None
+        for line in ip_result.stdout.split('\n'):
+            if line.startswith(' ') or line.startswith('\t'):
+                if f'inet {local_ip}/' in line:
+                    break
+            else:
+                # Line with interface name
+                match = re.match(r'\d+:\s+(\S+):', line)
+                if match:
+                    current_interface = match.group(1)
+
+        if not current_interface:
+            return None
+
+        # Get MAC for this interface
+        for line in result.stdout.split('\n'):
+            if current_interface in line:
+                # Next line should have MAC
+                continue
+            if 'link/ether' in line:
+                match = re.search(r'([0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2})', line)
+                if match:
+                    return normalize_mac(match.group(1))
+
+        return None
+    except Exception as e:
+        print(f"Error getting local MAC: {e}")
+        return None
+
+
 def get_scan_status():
     """Get current scan status"""
     return {
@@ -296,6 +376,27 @@ def scan_network(cidr, max_workers=50, progress_callback=None):
                 # Call progress callback if provided
                 if progress_callback:
                     progress_callback(completed, total_hosts)
+
+        # Add the local host machine to the scan results
+        local_ip = get_local_ip()
+        local_mac = get_local_mac()
+
+        if local_ip and local_mac:
+            # Check if local IP is already in results
+            if not any(d['ip'] == local_ip for d in devices):
+                try:
+                    local_hostname = socket.gethostname()
+                except Exception:
+                    local_hostname = 'LANControl-Server'
+
+                devices.append({
+                    'ip': local_ip,
+                    'hostname': local_hostname,
+                    'mac': local_mac,
+                    'last_seen': datetime.utcnow(),
+                    'is_local_host': True
+                })
+                print(f"Added local host: {local_ip} - {local_hostname} - {local_mac}")
 
         print(f"Scan complete. Found {len(devices)} devices.")
 
