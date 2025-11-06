@@ -3,6 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Home LAN device management with network scanning and Wake-on-LAN capabilities">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LANControl">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512x512.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='icons/icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
+
     <title>{% block title %}LANControl{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -318,6 +337,118 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateAlertBadge();
             setInterval(updateAlertBadge, 30000);
+        });
+
+        // PWA: Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/static/sw.js');
+                    console.log('Service Worker registered successfully:', registration.scope);
+
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+
+                    // Listen for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New service worker available
+                                showUpdateNotification();
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.log('Service Worker registration failed:', error);
+                }
+            });
+        }
+
+        // Show update notification when new version is available
+        function showUpdateNotification() {
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 glass bg-blue-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm';
+            notification.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="font-semibold mb-1">Update Available</p>
+                        <p class="text-sm mb-3">A new version of LANControl is available.</p>
+                        <button onclick="location.reload()" class="bg-white text-blue-600 px-4 py-2 rounded text-sm font-medium hover:bg-gray-100 transition">
+                            Reload Now
+                        </button>
+                        <button onclick="this.closest('div').parentElement.remove()" class="ml-2 text-white/80 hover:text-white text-sm">
+                            Later
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+        }
+
+        // PWA: Install prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            // Show install button/banner
+            showInstallPromotion();
+        });
+
+        function showInstallPromotion() {
+            const installBanner = document.createElement('div');
+            installBanner.id = 'installBanner';
+            installBanner.className = 'fixed bottom-4 left-4 glass bg-purple-600 text-white px-6 py-4 rounded-lg shadow-lg z-50 max-w-sm';
+            installBanner.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="font-semibold mb-1">Install LANControl</p>
+                        <p class="text-sm mb-3">Install this app on your device for quick access.</p>
+                        <button onclick="installPWA()" class="bg-white text-purple-600 px-4 py-2 rounded text-sm font-medium hover:bg-gray-100 transition">
+                            Install
+                        </button>
+                        <button onclick="document.getElementById('installBanner').remove()" class="ml-2 text-white/80 hover:text-white text-sm">
+                            Not Now
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) return;
+
+            // Show the install prompt
+            deferredPrompt.prompt();
+
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+
+            // Clear the deferredPrompt
+            deferredPrompt = null;
+
+            // Remove the install banner
+            const banner = document.getElementById('installBanner');
+            if (banner) banner.remove();
+        }
+
+        // PWA: Track installation
+        window.addEventListener('appinstalled', () => {
+            console.log('LANControl was installed');
+            deferredPrompt = null;
+            showToast('LANControl installed successfully!', 'success');
         });
     </script>
 
