@@ -308,24 +308,25 @@
 
         // Update alert badge
         async function updateAlertBadge() {
+            // Only run if user is authenticated (check if badge element exists)
+            const badge = document.getElementById('alertBadge');
+            if (!badge) return;
+
             try {
                 const data = await apiCall('/api/alerts/stats');
                 const unread = data.stats.unread;
 
-                const badge = document.getElementById('alertBadge');
                 const badgeMobile = document.getElementById('alertBadgeMobile');
 
                 if (unread > 0) {
-                    if (badge) {
-                        badge.textContent = unread > 9 ? '9+' : unread;
-                        badge.classList.remove('hidden');
-                    }
+                    badge.textContent = unread > 9 ? '9+' : unread;
+                    badge.classList.remove('hidden');
                     if (badgeMobile) {
                         badgeMobile.textContent = unread > 9 ? '9+' : unread;
                         badgeMobile.classList.remove('hidden');
                     }
                 } else {
-                    if (badge) badge.classList.add('hidden');
+                    badge.classList.add('hidden');
                     if (badgeMobile) badgeMobile.classList.add('hidden');
                 }
             } catch (error) {
@@ -333,10 +334,13 @@
             }
         }
 
-        // Update alert badge on page load and every 30 seconds
+        // Update alert badge on page load and every 30 seconds (only if authenticated)
         document.addEventListener('DOMContentLoaded', function() {
-            updateAlertBadge();
-            setInterval(updateAlertBadge, 30000);
+            // Only set up alert badge updates if user is authenticated
+            if (document.getElementById('alertBadge')) {
+                updateAlertBadge();
+                setInterval(updateAlertBadge, 30000);
+            }
         });
 
         // PWA: Service Worker Registration
