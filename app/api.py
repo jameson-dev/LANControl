@@ -878,135 +878,147 @@ def bulk_toggle_favorite():
 
 
 # ============================================================================
-# V3 FEATURES - NETWORK TOPOLOGY
+# V3 FEATURES - INSIGHTS & STATISTICS
 # ============================================================================
 
-@api_bp.route('/topology', methods=['GET'])
+@api_bp.route('/insights/network', methods=['GET'])
 @login_required
-def get_topology():
-    """Get complete network topology"""
-    from app.topology import get_topology_graph
-
-    graph = get_topology_graph()
-    return jsonify({'success': True, 'topology': graph})
-
-
-@api_bp.route('/topology/discover', methods=['POST'])
-@login_required
-def discover_topology():
-    """Trigger topology discovery"""
-    from app.topology import discover_topology
-
-    Thread(target=discover_topology).start()
-
-    return jsonify({'success': True, 'message': 'Topology discovery started'})
-
-
-@api_bp.route('/topology/position', methods=['PUT'])
-@login_required
-def update_topology_position():
-    """Update device position in topology map"""
-    from app.topology import update_device_position
-
-    data = request.get_json() or {}
-    device_id = data.get('device_id')
-    x = data.get('x', 0)
-    y = data.get('y', 0)
-
-    if not device_id:
-        return jsonify({'success': False, 'message': 'Device ID required'}), 400
-
-    update_device_position(device_id, x, y)
-
-    return jsonify({'success': True})
-
-
-@api_bp.route('/topology/connection', methods=['PUT'])
-@login_required
-def update_topology_connection():
-    """Set manual connection between devices"""
-    from app.topology import set_device_connection
-
-    data = request.get_json() or {}
-    device_id = data.get('device_id')
-    connected_to_id = data.get('connected_to_id')
-    connection_type = data.get('connection_type', 'ethernet')
-
-    if not device_id:
-        return jsonify({'success': False, 'message': 'Device ID required'}), 400
-
-    set_device_connection(device_id, connected_to_id, connection_type)
-
-    return jsonify({'success': True})
-
-
-# ============================================================================
-# V3 FEATURES - BANDWIDTH MONITORING
-# ============================================================================
-
-@api_bp.route('/bandwidth/device/<int:device_id>', methods=['GET'])
-@login_required
-def get_device_bandwidth(device_id):
-    """Get bandwidth history for a device"""
-    from app.bandwidth import get_device_bandwidth as get_bandwidth
-
-    hours = request.args.get('hours', 24, type=int)
-    data = get_bandwidth(device_id, hours)
-
-    return jsonify({'success': True, 'bandwidth': data})
-
-
-@api_bp.route('/bandwidth/top', methods=['GET'])
-@login_required
-def get_top_bandwidth_users():
-    """Get top bandwidth users"""
-    from app.bandwidth import get_top_bandwidth_users as get_top_users
-
-    limit = request.args.get('limit', 10, type=int)
-    hours = request.args.get('hours', 24, type=int)
-
-    data = get_top_users(limit, hours)
-
-    return jsonify({'success': True, 'top_users': data})
-
-
-@api_bp.route('/bandwidth/collect', methods=['POST'])
-@login_required
-def collect_bandwidth():
-    """Trigger bandwidth collection (admin)"""
-    from app.bandwidth import collect_bandwidth_data
-
-    Thread(target=collect_bandwidth_data).start()
-
-    return jsonify({'success': True, 'message': 'Bandwidth collection started'})
-
-
-@api_bp.route('/bandwidth/total', methods=['GET'])
-@login_required
-def get_total_bandwidth():
-    """Get network-wide bandwidth stats"""
-    from app.models import BandwidthUsage
+def get_network_insights():
+    """Get network-wide statistics and insights"""
     from sqlalchemy import func
     from datetime import timedelta
 
     hours = request.args.get('hours', 24, type=int)
     cutoff = datetime.utcnow() - timedelta(hours=hours)
 
-    stats = db.session.query(
-        func.sum(BandwidthUsage.bytes_sent).label('total_sent'),
-        func.sum(BandwidthUsage.bytes_received).label('total_received'),
-        func.count(func.distinct(BandwidthUsage.device_id)).label('active_devices')
+    # Total devices
+    total_devices = Device.query.count()
+
+    # Online devices (seen in last 10 minutes)
+    online_cutoff = datetime.utcnow() - timedelta(minutes=10)
+    online_devices = Device.query.filter(Device.last_seen >= online_cutoff).count()
+
+    # Status changes in time range
+    status_changes = DeviceHistory.query.filter(
+        DeviceHistory.timestamp >= cutoff
+    ).count()
+
+    # New devices discovered
+    new_devices = Device.query.filter(
+        Device.created_at >= cutoff
+    ).count()
+
+    # Get device activity timeline (hourly)
+    timeline = db.session.query(
+        func.strftime('%Y-%m-%d %H:00:00', DeviceHistory.timestamp).label('hour'),
+        func.count(func.distinct(DeviceHistory.device_id)).label('active_count')
     ).filter(
-        BandwidthUsage.timestamp >= cutoff
-    ).first()
+        DeviceHistory.timestamp >= cutoff,
+        DeviceHistory.status == 'online'
+    ).group_by('hour').order_by('hour').all()
 
     return jsonify({
         'success': True,
         'stats': {
-            'total_sent': int(stats[0]) if stats[0] else 0,
-            'total_received': int(stats[1]) if stats[1] else 0,
-            'total_bytes': int(stats[0] or 0) + int(stats[1] or 0),
-            'active_devices': stats[2] or 0,
+            'total_devices': total_devices,
+            'online_devices': online_devices,
+            'offline_devices': total_devices - online_devices,
+            'status_changes': status_changes,
+            'new_devices': new_devices,
             'hours': hours
-        }
+        },
+        'timeline': [{'timestamp': t[0], 'active_count': t[1]} for t in timeline]
+    })
+
+
+@api_bp.route('/insights/device/<int:device_id>', methods=['GET'])
+@login_required
+def get_device_insights(device_id):
+    """Get detailed insights for a specific device"""
+    device = Device.query.get_or_404(device_id)
+
+    hours = request.args.get('hours', 168, type=int)  # Default 7 days
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+
+    # Get history
+    history = DeviceHistory.query.filter(
+        DeviceHistory.device_id == device_id,
+        DeviceHistory.timestamp >= cutoff
+    ).order_by(DeviceHistory.timestamp.asc()).all()
+
+    # Calculate uptime
+    uptime_pct = calculate_uptime_percentage(device_id, hours)
+
+    # Get open ports
+    ports = DevicePort.query.filter_by(
+        device_id=device_id,
+        state='open'
+    ).all()
+
+    # Get recent alerts
+    alerts = DeviceAlert.query.filter_by(
+        device_id=device_id
+    ).order_by(DeviceAlert.created_at.desc()).limit(10).all()
+
+    return jsonify({
+        'success': True,
+        'device': device.to_dict(),
+        'uptime_percentage': round(uptime_pct, 2),
+        'history': [h.to_dict() for h in history],
+        'ports': [p.to_dict() for p in ports],
+        'alerts': [a.to_dict() for a in alerts]
+    })
+
+
+@api_bp.route('/insights/top-devices', methods=['GET'])
+@login_required
+def get_top_devices():
+    """Get top devices by various metrics"""
+    from sqlalchemy import func
+
+    hours = request.args.get('hours', 168, type=int)  # Default 7 days
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+
+    # Most active devices (most status changes)
+    most_active = db.session.query(
+        DeviceHistory.device_id,
+        func.count(DeviceHistory.id).label('change_count')
+    ).filter(
+        DeviceHistory.timestamp >= cutoff
+    ).group_by(DeviceHistory.device_id).order_by(
+        func.count(DeviceHistory.id).desc()
+    ).limit(10).all()
+
+    active_devices = []
+    for device_id, change_count in most_active:
+        device = Device.query.get(device_id)
+        if device:
+            active_devices.append({
+                'device': device.to_dict(),
+                'change_count': change_count
+            })
+
+    # Devices with most open ports
+    devices_with_ports = db.session.query(
+        DevicePort.device_id,
+        func.count(DevicePort.id).label('port_count')
+    ).filter(
+        DevicePort.state == 'open'
+    ).group_by(DevicePort.device_id).order_by(
+        func.count(DevicePort.id).desc()
+    ).limit(10).all()
+
+    port_devices = []
+    for device_id, port_count in devices_with_ports:
+        device = Device.query.get(device_id)
+        if device:
+            port_devices.append({
+                'device': device.to_dict(),
+                'port_count': port_count
+            })
+
+    return jsonify({
+        'success': True,
+        'most_active': active_devices,
+        'most_ports': port_devices
     })

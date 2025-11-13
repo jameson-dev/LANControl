@@ -179,16 +179,42 @@ function displayDevices(devices) {
     const cards = document.getElementById('devicesCards');
 
     if (devices.length === 0) {
+        // Check if this is truly empty or just filtered
+        const isFiltered = document.getElementById('searchInput').value ||
+                          document.getElementById('groupFilter').value ||
+                          document.getElementById('statusFilter').value ||
+                          document.getElementById('favoritesOnly').checked;
+
+        const emptyMessage = isFiltered ?
+            'No devices match your filters' :
+            allDevices.length === 0 ?
+                `<div class="text-center py-8">
+                    <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    <h3 class="text-lg font-medium text-white mb-2">No Devices Yet</h3>
+                    <p class="text-gray-400 mb-4">Get started by scanning your network or manually adding devices</p>
+                    <div class="flex gap-3 justify-center">
+                        <button onclick="triggerScan()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                            Scan Network
+                        </button>
+                        <button onclick="showAddDevice()" class="px-4 py-2 glass hover:glass-hover text-white rounded-lg font-medium transition">
+                            Add Manually
+                        </button>
+                    </div>
+                </div>` :
+                'No devices match your filters';
+
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="px-6 py-4 text-center text-gray-400">
-                    No devices found
+                    ${emptyMessage}
                 </td>
             </tr>
         `;
         cards.innerHTML = `
             <div class="text-center text-gray-400 py-4">
-                No devices found
+                ${emptyMessage}
             </div>
         `;
         return;
@@ -309,26 +335,35 @@ function formatDateTime(isoString) {
 // Trigger network scan
 async function triggerScan() {
     const btn = document.getElementById('scanBtn');
-    const btnText = document.getElementById('scanBtnText');
-
-    btn.disabled = true;
-    btnText.textContent = 'Scanning...';
+    btn.dataset.loadingText = 'Scanning...';
+    setButtonLoading(btn, true);
 
     try {
         const data = await apiCall('/api/scan/now', { method: 'POST' });
-        showToast(data.message, 'success');
+        showToast('Network scan started', 'success');
 
         // Switch to fast refresh during scan
         startFastRefresh();
+
+        let devicesFound = 0;
 
         // Poll for scan completion
         const pollInterval = setInterval(async () => {
             try {
                 const status = await apiCall('/api/scan/status');
+
+                // Update button with progress
+                if (status.in_progress) {
+                    const newCount = allDevices.filter(d => d.last_seen).length;
+                    if (newCount > devicesFound) {
+                        devicesFound = newCount;
+                        btn.querySelector('span').textContent = `Scanning... (${devicesFound} found)`;
+                    }
+                }
+
                 if (!status.in_progress) {
                     clearInterval(pollInterval);
-                    btn.disabled = false;
-                    btnText.textContent = 'Scan Network';
+                    setButtonLoading(btn, false);
 
                     // Do one final refresh
                     await loadDevices();
@@ -339,20 +374,18 @@ async function triggerScan() {
                         startNormalRefresh();
                     }, 5000); // Keep fast refresh for 5 more seconds
 
-                    showToast('Scan completed', 'success');
+                    showToast(`Scan completed! Found ${devicesFound} device${devicesFound !== 1 ? 's' : ''}`, 'success');
                 }
             } catch (error) {
                 clearInterval(pollInterval);
-                btn.disabled = false;
-                btnText.textContent = 'Scan Network';
+                setButtonLoading(btn, false);
                 startNormalRefresh(); // Return to normal refresh on error
             }
         }, 2000);
 
     } catch (error) {
         showToast('Error starting scan: ' + error.message, 'error');
-        btn.disabled = false;
-        btnText.textContent = 'Scan Network';
+        setButtonLoading(btn, false);
         startNormalRefresh(); // Return to normal refresh on error
     }
 }
@@ -432,6 +465,10 @@ function closeDeviceModal() {
 async function saveDevice(e) {
     e.preventDefault();
 
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.dataset.loadingText = 'Saving...';
+    setButtonLoading(submitBtn, true);
+
     const deviceId = document.getElementById('deviceId').value;
     const deviceData = {
         mac: document.getElementById('deviceMac').value,
@@ -465,6 +502,8 @@ async function saveDevice(e) {
         loadStats();
     } catch (error) {
         showToast('Error saving device: ' + error.message, 'error');
+    } finally {
+        setButtonLoading(submitBtn, false);
     }
 }
 

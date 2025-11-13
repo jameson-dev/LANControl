@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Network Insights - LANControl{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white">Network Insights</h2>
+            <p class="text-gray-400 text-sm mt-1">Device statistics and network analytics</p>
+        </div>
+        <div class="flex flex-wrap gap-2 sm:gap-3">
+            <button onclick="refreshData()"
+                    class="px-4 py-2 glass hover:glass-hover bg-purple-600/20 hover:bg-purple-600/30 text-white rounded-lg font-medium transition">
+                Refresh
+            </button>
+            <button onclick="exportInsightsData()"
+                    class="px-4 py-2 glass hover:glass-hover bg-green-600/20 hover:bg-green-600/30 text-white rounded-lg font-medium transition">
+                Export CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Time Range Selector -->
+    <div class="glass rounded-lg p-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <label class="text-sm text-gray-300">Time Range:</label>
+            <div class="flex gap-2">
+                <button onclick="changeTimeRange(1)" class="time-range-btn px-3 py-2 glass-input rounded-lg text-sm hover:bg-white/10 transition">
+                    1 Hour
+                </button>
+                <button onclick="changeTimeRange(6)" class="time-range-btn px-3 py-2 glass-input rounded-lg text-sm hover:bg-white/10 transition">
+                    6 Hours
+                </button>
+                <button onclick="changeTimeRange(24)" class="time-range-btn active bg-blue-600/30 px-3 py-2 glass-input rounded-lg text-sm hover:bg-white/10 transition">
+                    24 Hours
+                </button>
+                <button onclick="changeTimeRange(168)" class="time-range-btn px-3 py-2 glass-input rounded-lg text-sm hover:bg-white/10 transition">
+                    7 Days
+                </button>
+                <button onclick="changeTimeRange(720)" class="time-range-btn px-3 py-2 glass-input rounded-lg text-sm hover:bg-white/10 transition">
+                    30 Days
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Statistics -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="glass rounded-lg p-3 sm:p-4">
+            <div class="text-gray-400 text-xs sm:text-sm">Total Devices</div>
+            <div class="text-2xl sm:text-3xl font-bold text-blue-400 mt-1" id="stat-total-devices">-</div>
+        </div>
+        <div class="glass rounded-lg p-3 sm:p-4">
+            <div class="text-gray-400 text-xs sm:text-sm">Online</div>
+            <div class="text-2xl sm:text-3xl font-bold text-green-400 mt-1" id="stat-online-devices">-</div>
+        </div>
+        <div class="glass rounded-lg p-3 sm:p-4">
+            <div class="text-gray-400 text-xs sm:text-sm">Offline</div>
+            <div class="text-2xl sm:text-3xl font-bold text-red-400 mt-1" id="stat-offline-devices">-</div>
+        </div>
+        <div class="glass rounded-lg p-3 sm:p-4">
+            <div class="text-gray-400 text-xs sm:text-sm">Status Changes</div>
+            <div class="text-2xl sm:text-3xl font-bold text-yellow-400 mt-1" id="stat-status-changes">-</div>
+        </div>
+        <div class="glass rounded-lg p-3 sm:p-4">
+            <div class="text-gray-400 text-xs sm:text-sm">New Devices</div>
+            <div class="text-2xl sm:text-3xl font-bold text-purple-400 mt-1" id="stat-new-devices">-</div>
+        </div>
+    </div>
+
+    <!-- Network Activity Chart -->
+    <div class="glass rounded-lg p-4 sm:p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-white">Network Activity</h3>
+            <div class="text-xs text-gray-400">
+                Last updated: <span id="stat-last-updated">-</span>
+            </div>
+        </div>
+        <div class="h-64">
+            <canvas id="activityChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Devices -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <!-- Most Active Devices -->
+        <div class="glass rounded-lg p-4 sm:p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Most Active Devices</h3>
+            <div class="text-xs text-gray-400 mb-3">Devices with most status changes</div>
+            <div id="mostActiveList" class="space-y-1">
+                <div class="text-gray-400 text-sm">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Devices with Most Ports -->
+        <div class="glass rounded-lg p-4 sm:p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Devices with Most Services</h3>
+            <div class="text-xs text-gray-400 mb-3">Devices with most open ports</div>
+            <div id="mostPortsList" class="space-y-1">
+                <div class="text-gray-400 text-sm">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="glass rounded-lg p-4 sm:p-6">
+        <div class="flex items-start gap-4">
+            <div class="text-blue-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h4 class="text-white font-medium mb-1">About Network Insights</h4>
+                <p class="text-gray-400 text-sm">
+                    This page provides analytics based on your network's actual data: device uptime tracking,
+                    connection history, discovered services, and status changes. Click on any device in the lists
+                    above to view detailed insights including uptime graphs, open ports, and recent alerts.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device Details Modal -->
+<div id="deviceModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="glass rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h3 class="text-xl font-bold text-white" id="modalDeviceName">Device Details</h3>
+                <div class="text-sm text-gray-400 mt-1" id="deviceUptime">-</div>
+            </div>
+            <button onclick="closeDeviceModal()" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Device Info -->
+        <div class="glass rounded-lg p-4 mb-4" id="deviceInfo">
+            Loading...
+        </div>
+
+        <!-- Uptime Chart -->
+        <div class="glass rounded-lg p-4 mb-4">
+            <h4 class="text-lg font-bold text-white mb-3">Uptime History (Last 7 Days)</h4>
+            <div class="h-48">
+                <canvas id="deviceUptimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Two Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Open Ports -->
+            <div class="glass rounded-lg p-4">
+                <h4 class="text-lg font-bold text-white mb-3">Open Ports</h4>
+                <div id="devicePorts">
+                    Loading...
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="glass rounded-lg p-4">
+                <h4 class="text-lg font-bold text-white mb-3">Recent Alerts</h4>
+                <div id="deviceAlerts">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/insights.js') }}"></script>
+{% endblock %}

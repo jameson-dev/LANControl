@@ -68,17 +68,11 @@ def create_app(config_class=Config):
         """Alerts page"""
         return render_template('alerts.html')
 
-    @app.route('/map')
+    @app.route('/insights')
     @login_required
-    def network_map():
-        """Network topology map page"""
-        return render_template('map.html')
-
-    @app.route('/bandwidth')
-    @login_required
-    def bandwidth():
-        """Bandwidth monitoring page"""
-        return render_template('bandwidth.html')
+    def insights():
+        """Device insights and statistics page"""
+        return render_template('insights.html')
 
     # Register main blueprint
     from flask import Blueprint
@@ -86,8 +80,7 @@ def create_app(config_class=Config):
     main_bp.add_url_rule('/dashboard', 'dashboard', dashboard)
     main_bp.add_url_rule('/settings', 'settings', settings)
     main_bp.add_url_rule('/alerts', 'alerts', alerts)
-    main_bp.add_url_rule('/map', 'network_map', network_map)
-    main_bp.add_url_rule('/bandwidth', 'bandwidth', bandwidth)
+    main_bp.add_url_rule('/insights', 'insights', insights)
     app.register_blueprint(main_bp)
 
     # Error handlers

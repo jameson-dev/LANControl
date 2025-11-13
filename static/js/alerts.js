@@ -150,11 +150,25 @@ function displayAlerts(alerts) {
     }
 
     if (alerts.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-gray-400 py-8">
-                No alerts found
-            </div>
-        `;
+        // Check if truly empty or just filtered
+        const isFiltered = document.getElementById('searchInput')?.value ||
+                          document.getElementById('severityFilter')?.value ||
+                          document.getElementById('typeFilter')?.value ||
+                          document.getElementById('unreadOnly')?.checked;
+
+        const emptyMessage = isFiltered ?
+            `<div class="text-center py-8">
+                <div class="text-gray-400">No alerts match your filters</div>
+            </div>` :
+            `<div class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+                <h3 class="text-lg font-medium text-white mb-2">No Alerts Yet</h3>
+                <p class="text-gray-400 text-sm">You're all caught up! Alerts will appear here when devices change status, new devices are discovered, or ports change.</p>
+            </div>`;
+
+        container.innerHTML = emptyMessage;
         return;
     }
 
