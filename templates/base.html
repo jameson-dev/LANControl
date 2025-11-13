@@ -45,10 +45,21 @@
     </script>
     <style>
         /* Glassmorphism Base */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
         body {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
             background-attachment: fixed;
             position: relative;
+        }
+
+        /* Prevent scrolling on login page only */
+        body.no-scroll {
+            overflow: hidden;
         }
 
         /* Animated background gradient */
@@ -142,7 +153,7 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-dark-bg text-gray-100 min-h-screen">
+<body class="bg-dark-bg text-gray-100 min-h-screen {% block body_class %}{% endblock %}">
     <!-- Navigation -->
     {% if current_user.is_authenticated %}
     <nav class="glass border-b border-white/10 relative z-10">
