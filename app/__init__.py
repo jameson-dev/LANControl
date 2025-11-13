@@ -22,8 +22,19 @@ def create_app(config_class=Config):
         Flask application instance
     """
     # Get the parent directory (project root) for templates and static files
-    template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+    # Use abspath to resolve any symlinks and ensure absolute path
+    base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+    template_dir = os.path.join(base_dir, 'templates')
+    static_dir = os.path.join(base_dir, 'static')
+
+    # Debug: Print paths to verify they're correct
+    print(f"[DEBUG] Base directory: {base_dir}")
+    print(f"[DEBUG] Template directory: {template_dir}")
+    print(f"[DEBUG] Template directory exists: {os.path.exists(template_dir)}")
+    if os.path.exists(template_dir):
+        print(f"[DEBUG] Templates found: {os.listdir(template_dir)}")
+    else:
+        print(f"[ERROR] Template directory not found!")
 
     app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
     app.config.from_object(config_class)
