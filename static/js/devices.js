@@ -250,9 +250,8 @@ function displayDevices(devices) {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="relative inline-block">
-                    <button onclick="toggleDropdown(event, ${device.id})"
-                            ontouchstart="toggleDropdown(event, ${device.id})"
-                            class="text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                    <button class="dropdown-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                            data-device-id="${device.id}"
                             title="Actions">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
@@ -279,9 +278,8 @@ function displayDevices(devices) {
                     </div>
                 </div>
                 <div class="relative">
-                    <button onclick="toggleDropdown(event, ${device.id})"
-                            ontouchstart="toggleDropdown(event, ${device.id})"
-                            class="text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
+                    <button class="dropdown-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
+                            data-device-id="${device.id}"
                             title="Actions">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
@@ -678,6 +676,7 @@ function toggleDropdown(event, deviceId) {
     document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
         if (dropdown.id !== `dropdown-${deviceId}`) {
             dropdown.classList.add('hidden');
+            dropdown.style.position = 'absolute'; // Reset to absolute
         }
     });
 
@@ -685,35 +684,43 @@ function toggleDropdown(event, deviceId) {
     const dropdown = document.getElementById(`dropdown-${deviceId}`);
     const isHidden = dropdown.classList.contains('hidden');
 
-    dropdown.classList.toggle('hidden');
-
-    // Position adjustment for overflow
     if (isHidden) {
-        // Dropdown was hidden, now showing - check positioning
-        setTimeout(() => {
-            const rect = dropdown.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const viewportWidth = window.innerWidth;
+        // Opening dropdown - use fixed positioning to prevent page overflow
+        const button = event.target.closest('.dropdown-toggle');
+        const buttonRect = button.getBoundingClientRect();
 
-            // Check if dropdown goes below viewport
-            if (rect.bottom > viewportHeight) {
-                dropdown.style.bottom = '100%';
-                dropdown.style.top = 'auto';
-                dropdown.style.marginTop = '0';
-                dropdown.style.marginBottom = '0.5rem';
-            } else {
-                dropdown.style.bottom = 'auto';
-                dropdown.style.top = '100%';
-                dropdown.style.marginTop = '0.5rem';
-                dropdown.style.marginBottom = '0';
-            }
+        dropdown.classList.remove('hidden');
+        dropdown.style.position = 'fixed';
+        dropdown.style.zIndex = '9999';
 
-            // Check if dropdown goes off right edge
-            if (rect.right > viewportWidth) {
-                dropdown.style.right = '0';
-                dropdown.style.left = 'auto';
-            }
-        }, 10);
+        // Calculate position
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const dropdownHeight = 300; // Approximate max height
+
+        // Position horizontally (right-aligned with button)
+        let left = buttonRect.right - 200; // 200px is min-width
+        if (left < 10) left = 10; // Ensure 10px from left edge
+        dropdown.style.left = left + 'px';
+        dropdown.style.right = 'auto';
+
+        // Position vertically (below or above button)
+        const spaceBelow = viewportHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+
+        if (spaceBelow >= dropdownHeight || spaceBelow > spaceAbove) {
+            // Position below
+            dropdown.style.top = (buttonRect.bottom + 8) + 'px';
+            dropdown.style.bottom = 'auto';
+        } else {
+            // Position above
+            dropdown.style.bottom = (viewportHeight - buttonRect.top + 8) + 'px';
+            dropdown.style.top = 'auto';
+        }
+    } else {
+        // Closing dropdown
+        dropdown.classList.add('hidden');
+        dropdown.style.position = 'absolute'; // Reset to absolute
     }
 }
 
@@ -760,9 +767,18 @@ function hideContextMenu() {
     contextMenuDevice = null;
 }
 
-// Close dropdowns and context menu when clicking outside
+// Event delegation for dropdown toggles (handles both click and touch)
 document.addEventListener('click', function(event) {
-    if (!event.target.closest('[id^="dropdown-"]') && !event.target.closest('button[onclick*="toggleDropdown"]')) {
+    const toggle = event.target.closest('.dropdown-toggle');
+
+    if (toggle) {
+        const deviceId = parseInt(toggle.getAttribute('data-device-id'));
+        toggleDropdown(event, deviceId);
+        return;
+    }
+
+    // Close dropdowns when clicking outside
+    if (!event.target.closest('[id^="dropdown-"]') && !event.target.closest('.dropdown-toggle')) {
         closeAllDropdowns();
     }
 });
