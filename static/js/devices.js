@@ -682,25 +682,43 @@ function toggleDropdown(event, deviceId) {
 
     // Toggle this dropdown
     const dropdown = document.getElementById(`dropdown-${deviceId}`);
+    if (!dropdown) {
+        console.error('Dropdown not found for device:', deviceId);
+        return;
+    }
+
     const isHidden = dropdown.classList.contains('hidden');
 
     if (isHidden) {
         // Opening dropdown - use fixed positioning to prevent page overflow
         const button = event.target.closest('.dropdown-toggle');
+        if (!button) {
+            console.error('Button not found in event target');
+            // Fallback: just show it in default position
+            dropdown.classList.remove('hidden');
+            return;
+        }
+
         const buttonRect = button.getBoundingClientRect();
 
         dropdown.classList.remove('hidden');
         dropdown.style.position = 'fixed';
-        dropdown.style.zIndex = '9999';
+        dropdown.style.zIndex = '99999'; // Even higher z-index
 
         // Calculate position
         const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
         const dropdownHeight = 300; // Approximate max height
 
+        console.log('Button rect:', buttonRect);
+        console.log('Viewport:', viewportWidth, 'x', viewportHeight);
+
         // Position horizontally (right-aligned with button)
         let left = buttonRect.right - 200; // 200px is min-width
         if (left < 10) left = 10; // Ensure 10px from left edge
+        if (left + 200 > viewportWidth) {
+            left = viewportWidth - 210; // Ensure 10px from right edge
+        }
         dropdown.style.left = left + 'px';
         dropdown.style.right = 'auto';
 
@@ -708,15 +726,21 @@ function toggleDropdown(event, deviceId) {
         const spaceBelow = viewportHeight - buttonRect.bottom;
         const spaceAbove = buttonRect.top;
 
+        console.log('Space below:', spaceBelow, 'Space above:', spaceAbove);
+
         if (spaceBelow >= dropdownHeight || spaceBelow > spaceAbove) {
             // Position below
             dropdown.style.top = (buttonRect.bottom + 8) + 'px';
             dropdown.style.bottom = 'auto';
+            console.log('Positioned below at:', buttonRect.bottom + 8);
         } else {
             // Position above
             dropdown.style.bottom = (viewportHeight - buttonRect.top + 8) + 'px';
             dropdown.style.top = 'auto';
+            console.log('Positioned above at:', viewportHeight - buttonRect.top + 8);
         }
+
+        console.log('Final dropdown position:', dropdown.style.left, dropdown.style.top || dropdown.style.bottom);
     } else {
         // Closing dropdown
         dropdown.classList.add('hidden');
@@ -728,9 +752,14 @@ function toggleDropdown(event, deviceId) {
 function closeAllDropdowns() {
     document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
         dropdown.classList.add('hidden');
+        dropdown.style.position = 'absolute'; // Reset position
     });
     hideContextMenu();
 }
+
+// Close dropdowns on scroll or resize
+window.addEventListener('scroll', closeAllDropdowns, true);
+window.addEventListener('resize', closeAllDropdowns);
 
 // Context menu functionality
 let contextMenuDevice = null;
