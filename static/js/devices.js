@@ -249,17 +249,15 @@ function displayDevices(devices) {
                 ${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="relative inline-block">
-                    <button class="dropdown-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
-                            data-device-id="${device.id}"
-                            title="Actions">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                        </svg>
-                    </button>
-                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50 min-w-[200px]">
-                        ${createDeviceMenu(device)}
-                    </div>
+                <button class="dropdown-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                        data-device-id="${device.id}"
+                        title="Actions">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                    </svg>
+                </button>
+                <div id="dropdown-${device.id}" class="hidden dropdown-menu rounded-lg overflow-hidden min-w-[200px]">
+                    ${createDeviceMenu(device)}
                 </div>
             </td>
         </tr>
@@ -277,17 +275,15 @@ function displayDevices(devices) {
                         ${device.nickname || device.hostname || '-'}
                     </div>
                 </div>
-                <div class="relative">
-                    <button class="dropdown-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
-                            data-device-id="${device.id}"
-                            title="Actions">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                        </svg>
-                    </button>
-                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50 min-w-[200px]">
-                        ${createDeviceMenu(device)}
-                    </div>
+                <button class="dropdown-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
+                        data-device-id="${device.id}"
+                        title="Actions">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                    </svg>
+                </button>
+                <div id="dropdown-${device.id}" class="hidden dropdown-menu rounded-lg overflow-hidden min-w-[200px]">
+                    ${createDeviceMenu(device)}
                 </div>
             </div>
             <div class="space-y-2 text-sm">
@@ -685,7 +681,87 @@ function toggleDropdown(event, deviceId) {
         return;
     }
 
+    const wasHidden = dropdown.classList.contains('hidden');
     dropdown.classList.toggle('hidden');
+
+    // Position dropdown intelligently after showing
+    if (wasHidden) {
+        positionDropdown(event.currentTarget, dropdown);
+    }
+}
+
+// Smart positioning for dropdown menus
+function positionDropdown(button, dropdown) {
+    // Reset any previous positioning
+    dropdown.style.top = '';
+    dropdown.style.bottom = '';
+    dropdown.style.left = '';
+    dropdown.style.right = '';
+    dropdown.style.transform = '';
+
+    // Get button position and dimensions
+    const buttonRect = button.getBoundingClientRect();
+
+    // Temporarily show dropdown to get its dimensions
+    const wasHidden = dropdown.classList.contains('hidden');
+    if (wasHidden) {
+        dropdown.style.visibility = 'hidden';
+        dropdown.classList.remove('hidden');
+    }
+
+    const dropdownRect = dropdown.getBoundingClientRect();
+
+    if (wasHidden) {
+        dropdown.classList.add('hidden');
+        dropdown.style.visibility = '';
+    }
+
+    // Get viewport dimensions
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+
+    // Calculate space available in each direction
+    const spaceBelow = viewportHeight - buttonRect.bottom;
+    const spaceAbove = buttonRect.top;
+
+    // Determine vertical position (with padding)
+    const verticalPadding = 8; // 0.5rem
+    let top;
+
+    if (spaceBelow >= dropdownRect.height + verticalPadding || spaceBelow >= spaceAbove) {
+        // Position below button (default)
+        top = buttonRect.bottom + verticalPadding;
+    } else {
+        // Position above button
+        top = buttonRect.top - dropdownRect.height - verticalPadding;
+    }
+
+    dropdown.style.top = `${top}px`;
+
+    // Determine horizontal position
+    const horizontalPadding = 16; // Padding from viewport edges
+    let left;
+
+    // Try to align right edge of dropdown with right edge of button
+    const preferredLeft = buttonRect.right - dropdownRect.width;
+
+    if (preferredLeft < horizontalPadding) {
+        // Would overflow left edge, align to left padding
+        left = horizontalPadding;
+    } else if (buttonRect.right > viewportWidth - horizontalPadding) {
+        // Button is too close to right edge, align dropdown to right padding
+        left = viewportWidth - dropdownRect.width - horizontalPadding;
+    } else {
+        // Use preferred position (right-aligned with button)
+        left = preferredLeft;
+    }
+
+    // Ensure dropdown doesn't overflow right edge
+    if (left + dropdownRect.width > viewportWidth - horizontalPadding) {
+        left = viewportWidth - dropdownRect.width - horizontalPadding;
+    }
+
+    dropdown.style.left = `${Math.max(horizontalPadding, left)}px`;
 }
 
 // Close all dropdowns
