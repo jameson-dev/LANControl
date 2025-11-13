@@ -249,16 +249,13 @@ function displayDevices(devices) {
                 ${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button class="dropdown-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
-                        data-device-id="${device.id}"
+                <button class="action-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                        onclick="showActionSheet(${device.id})"
                         title="Actions">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                     </svg>
                 </button>
-                <div id="dropdown-${device.id}" class="hidden dropdown-menu rounded-lg overflow-hidden min-w-[200px]">
-                    ${createDeviceMenu(device)}
-                </div>
             </td>
         </tr>
     `).join('');
@@ -275,16 +272,13 @@ function displayDevices(devices) {
                         ${device.nickname || device.hostname || '-'}
                     </div>
                 </div>
-                <button class="dropdown-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
-                        data-device-id="${device.id}"
+                <button class="action-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
+                        onclick="showActionSheet(${device.id})"
                         title="Actions">
                     <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                     </svg>
                 </button>
-                <div id="dropdown-${device.id}" class="hidden dropdown-menu rounded-lg overflow-hidden min-w-[200px]">
-                    ${createDeviceMenu(device)}
-                </div>
             </div>
             <div class="space-y-2 text-sm">
                 <div class="flex justify-between">
@@ -630,219 +624,146 @@ function closePortScanModal() {
     }
 }
 
-// Create device menu items
-function createDeviceMenu(device) {
-    return `
-        <button onclick="wakeDevice(${device.id}); closeAllDropdowns();"
-                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
-            <span class="text-green-400">⚡</span>
-            <span>Wake on LAN</span>
-        </button>
-        <button onclick="scanDevicePorts(${device.id}, 'quick'); closeAllDropdowns();"
-                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3 ${!device.ip ? 'opacity-50 cursor-not-allowed' : ''}"
-                ${!device.ip ? 'disabled' : ''}>
-            <span class="text-purple-400">🔍</span>
-            <span>Scan Ports</span>
-        </button>
-        <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite}); closeAllDropdowns();"
-                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
-            <span class="text-yellow-400">${device.is_favorite ? '★' : '☆'}</span>
-            <span>${device.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
-        </button>
-        <div class="border-t border-white/10"></div>
-        <button onclick="showEditDeviceModal(${device.id}); closeAllDropdowns();"
-                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-white flex items-center gap-3">
-            <span class="text-blue-400">✏️</span>
-            <span>Edit Device</span>
-        </button>
-        <button onclick="deleteDevice(${device.id}); closeAllDropdowns();"
-                class="dropdown-menu-item w-full text-left px-4 py-3 text-sm text-red-400 flex items-center gap-3">
-            <span>🗑️</span>
-            <span>Delete Device</span>
-        </button>
+// Show action sheet for device
+function showActionSheet(deviceId) {
+    const device = allDevices.find(d => d.id === deviceId);
+    if (!device) return;
+
+    // Close any existing action sheet
+    closeActionSheet();
+
+    const deviceName = device.nickname || device.hostname || device.mac;
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'actionSheetOverlay';
+    overlay.className = 'action-sheet-overlay';
+    overlay.onclick = closeActionSheet;
+
+    // Create action sheet
+    const sheet = document.createElement('div');
+    sheet.id = 'actionSheet';
+    sheet.className = 'action-sheet';
+    sheet.onclick = (e) => e.stopPropagation();
+
+    sheet.innerHTML = `
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-6">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-semibold text-white truncate">${deviceName}</h3>
+                    <p class="text-sm text-gray-400 mt-1">
+                        ${device.ip || 'No IP'} • ${device.status === 'online' ? '🟢 Online' : '⚫ Offline'}
+                    </p>
+                </div>
+                <button onclick="closeActionSheet()" class="text-gray-400 hover:text-white ml-4 flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Actions -->
+            <div class="space-y-2">
+                <button onclick="wakeDevice(${device.id}); closeActionSheet();"
+                        class="action-menu-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center gap-3">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span>Wake on LAN</span>
+                </button>
+
+                <button onclick="scanDevicePorts(${device.id}, 'quick'); closeActionSheet();"
+                        class="action-menu-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center gap-3 ${!device.ip ? 'opacity-50 cursor-not-allowed' : ''}"
+                        ${!device.ip ? 'disabled' : ''}>
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <span>Scan Ports</span>
+                </button>
+
+                <button onclick="toggleFavorite(${device.id}, ${!device.is_favorite}); closeActionSheet();"
+                        class="action-menu-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center gap-3">
+                    <svg class="w-5 h-5 text-yellow-400" fill="${device.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                    <span>${device.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
+                </button>
+
+                <div class="border-t border-white/10 my-2"></div>
+
+                <button onclick="showEditDeviceModal(${device.id}); closeActionSheet();"
+                        class="action-menu-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center gap-3">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    <span>Edit Device</span>
+                </button>
+
+                <button onclick="deleteDevice(${device.id}); closeActionSheet();"
+                        class="action-menu-item w-full text-left px-4 py-3 rounded-lg text-red-400 flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span>Delete Device</span>
+                </button>
+            </div>
+        </div>
     `;
-}
 
-// Toggle dropdown menu
-function toggleDropdown(event, deviceId) {
-    event.preventDefault();
-    event.stopPropagation();
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
 
-    // Close all other dropdowns
-    document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
-        if (dropdown.id !== `dropdown-${deviceId}`) {
-            dropdown.classList.add('hidden');
-        }
+    // Trigger animation
+    requestAnimationFrame(() => {
+        overlay.classList.add('show');
+        sheet.classList.add('show');
     });
 
-    // Toggle this dropdown
-    const dropdown = document.getElementById(`dropdown-${deviceId}`);
-    if (!dropdown) {
-        return;
-    }
-
-    const wasHidden = dropdown.classList.contains('hidden');
-    dropdown.classList.toggle('hidden');
-
-    // Position dropdown intelligently after showing
-    if (wasHidden) {
-        positionDropdown(event.currentTarget, dropdown);
-    }
+    // Prevent body scrolling when action sheet is open
+    document.body.style.overflow = 'hidden';
 }
 
-// Smart positioning for dropdown menus
-function positionDropdown(button, dropdown) {
-    // Reset any previous positioning
-    dropdown.style.top = '';
-    dropdown.style.bottom = '';
-    dropdown.style.left = '';
-    dropdown.style.right = '';
-    dropdown.style.transform = '';
+// Close action sheet
+function closeActionSheet() {
+    const overlay = document.getElementById('actionSheetOverlay');
+    const sheet = document.getElementById('actionSheet');
 
-    // Get button position and dimensions
-    const buttonRect = button.getBoundingClientRect();
+    if (overlay && sheet) {
+        overlay.classList.remove('show');
+        sheet.classList.remove('show');
 
-    // Temporarily show dropdown to get its dimensions
-    const wasHidden = dropdown.classList.contains('hidden');
-    if (wasHidden) {
-        dropdown.style.visibility = 'hidden';
-        dropdown.classList.remove('hidden');
+        setTimeout(() => {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        }, 300);
     }
 
-    const dropdownRect = dropdown.getBoundingClientRect();
-
-    if (wasHidden) {
-        dropdown.classList.add('hidden');
-        dropdown.style.visibility = '';
-    }
-
-    // Get viewport dimensions
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-
-    // Calculate space available in each direction
-    const spaceBelow = viewportHeight - buttonRect.bottom;
-    const spaceAbove = buttonRect.top;
-
-    // Determine vertical position (with padding)
-    const verticalPadding = 8; // 0.5rem
-    let top;
-
-    if (spaceBelow >= dropdownRect.height + verticalPadding || spaceBelow >= spaceAbove) {
-        // Position below button (default)
-        top = buttonRect.bottom + verticalPadding;
-    } else {
-        // Position above button
-        top = buttonRect.top - dropdownRect.height - verticalPadding;
-    }
-
-    dropdown.style.top = `${top}px`;
-
-    // Determine horizontal position
-    const horizontalPadding = 16; // Padding from viewport edges
-    let left;
-
-    // Try to align right edge of dropdown with right edge of button
-    const preferredLeft = buttonRect.right - dropdownRect.width;
-
-    if (preferredLeft < horizontalPadding) {
-        // Would overflow left edge, align to left padding
-        left = horizontalPadding;
-    } else if (buttonRect.right > viewportWidth - horizontalPadding) {
-        // Button is too close to right edge, align dropdown to right padding
-        left = viewportWidth - dropdownRect.width - horizontalPadding;
-    } else {
-        // Use preferred position (right-aligned with button)
-        left = preferredLeft;
-    }
-
-    // Ensure dropdown doesn't overflow right edge
-    if (left + dropdownRect.width > viewportWidth - horizontalPadding) {
-        left = viewportWidth - dropdownRect.width - horizontalPadding;
-    }
-
-    dropdown.style.left = `${Math.max(horizontalPadding, left)}px`;
+    // Restore body scrolling
+    document.body.style.overflow = '';
 }
 
-// Close all dropdowns
-function closeAllDropdowns() {
-    document.querySelectorAll('[id^="dropdown-"]').forEach(dropdown => {
-        dropdown.classList.add('hidden');
-    });
-    hideContextMenu();
-}
-
-// Close dropdowns on scroll
-window.addEventListener('scroll', closeAllDropdowns, true);
-
-// Context menu functionality
-let contextMenuDevice = null;
-
-function showContextMenu(event, device) {
-    event.preventDefault();
-
-    // Remove existing context menu
-    hideContextMenu();
-
-    contextMenuDevice = device;
-
-    // Create context menu
-    const menu = document.createElement('div');
-    menu.id = 'deviceContextMenu';
-    menu.className = 'context-menu dropdown-menu rounded-lg overflow-hidden';
-    menu.innerHTML = createDeviceMenu(device);
-
-    // Position the menu
-    menu.style.left = event.pageX + 'px';
-    menu.style.top = event.pageY + 'px';
-
-    document.body.appendChild(menu);
-
-    // Show the menu
-    setTimeout(() => menu.classList.add('show'), 10);
-}
-
-function hideContextMenu() {
-    const menu = document.getElementById('deviceContextMenu');
-    if (menu) {
-        menu.remove();
-    }
-    contextMenuDevice = null;
-}
-
-// Event delegation for dropdown toggles (handles both click and touch)
-document.addEventListener('click', function(event) {
-    const toggle = event.target.closest('.dropdown-toggle');
-
-    if (toggle) {
-        const deviceId = parseInt(toggle.getAttribute('data-device-id'));
-        toggleDropdown(event, deviceId);
-        return;
-    }
-
-    // Close dropdowns when clicking outside
-    if (!event.target.closest('[id^="dropdown-"]') && !event.target.closest('.dropdown-toggle')) {
-        closeAllDropdowns();
+// Close action sheet on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeActionSheet();
     }
 });
 
-// Add right-click context menu to table rows
+// Context menu functionality (right-click) - now uses action sheet
+document.addEventListener('contextmenu', function(event) {
+    const row = event.target.closest('tr[data-device-id]');
+    const card = event.target.closest('.device-card[data-device-id]');
+
+    if (row || card) {
+        event.preventDefault();
+        const deviceId = parseInt((row || card).getAttribute('data-device-id'));
+        showActionSheet(deviceId);
+    }
+});
+
+// Notes character counter
 document.addEventListener('DOMContentLoaded', function() {
-    // This will be attached dynamically when rows are rendered
-    document.addEventListener('contextmenu', function(event) {
-        const row = event.target.closest('tr[data-device-id]');
-        const card = event.target.closest('.device-card[data-device-id]');
-
-        if (row || card) {
-            const deviceId = parseInt((row || card).getAttribute('data-device-id'));
-            const device = allDevices.find(d => d.id === deviceId);
-            if (device) {
-                showContextMenu(event, device);
-            }
-        }
-    });
-
-    // Notes character counter
     const notesTextarea = document.getElementById('deviceNotes');
     if (notesTextarea) {
         notesTextarea.addEventListener('input', function() {
