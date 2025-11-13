@@ -143,9 +143,19 @@
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            min-width: 180px;
-            max-height: 80vh;
+            min-width: 200px;
+            max-width: 250px;
+            max-height: min(80vh, 400px);
             overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Ensure dropdown stays in viewport */
+        [id^="dropdown-"] {
+            position: absolute;
+            right: 0;
+            margin-top: 0.5rem;
+            z-index: 1000;
         }
 
         .dropdown-menu-item {
