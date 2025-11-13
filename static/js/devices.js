@@ -251,13 +251,14 @@ function displayDevices(devices) {
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="relative inline-block">
                     <button onclick="toggleDropdown(event, ${device.id})"
+                            ontouchstart="toggleDropdown(event, ${device.id})"
                             class="text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
                             title="Actions">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                         </svg>
                     </button>
-                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50">
+                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50 min-w-[200px]">
                         ${createDeviceMenu(device)}
                     </div>
                 </div>
@@ -279,13 +280,14 @@ function displayDevices(devices) {
                 </div>
                 <div class="relative">
                     <button onclick="toggleDropdown(event, ${device.id})"
-                            class="text-gray-400 active:text-white transition p-2 rounded-lg active:bg-white/10"
+                            ontouchstart="toggleDropdown(event, ${device.id})"
+                            class="text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
                             title="Actions">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
                         </svg>
                     </button>
-                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50">
+                    <div id="dropdown-${device.id}" class="hidden absolute right-0 mt-2 dropdown-menu rounded-lg overflow-hidden z-50 min-w-[200px]">
                         ${createDeviceMenu(device)}
                     </div>
                 </div>
@@ -669,6 +671,7 @@ function createDeviceMenu(device) {
 
 // Toggle dropdown menu
 function toggleDropdown(event, deviceId) {
+    event.preventDefault();
     event.stopPropagation();
 
     // Close all other dropdowns
@@ -680,7 +683,38 @@ function toggleDropdown(event, deviceId) {
 
     // Toggle this dropdown
     const dropdown = document.getElementById(`dropdown-${deviceId}`);
+    const isHidden = dropdown.classList.contains('hidden');
+
     dropdown.classList.toggle('hidden');
+
+    // Position adjustment for overflow
+    if (isHidden) {
+        // Dropdown was hidden, now showing - check positioning
+        setTimeout(() => {
+            const rect = dropdown.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+
+            // Check if dropdown goes below viewport
+            if (rect.bottom > viewportHeight) {
+                dropdown.style.bottom = '100%';
+                dropdown.style.top = 'auto';
+                dropdown.style.marginTop = '0';
+                dropdown.style.marginBottom = '0.5rem';
+            } else {
+                dropdown.style.bottom = 'auto';
+                dropdown.style.top = '100%';
+                dropdown.style.marginTop = '0.5rem';
+                dropdown.style.marginBottom = '0';
+            }
+
+            // Check if dropdown goes off right edge
+            if (rect.right > viewportWidth) {
+                dropdown.style.right = '0';
+                dropdown.style.left = 'auto';
+            }
+        }, 10);
+    }
 }
 
 // Close all dropdowns

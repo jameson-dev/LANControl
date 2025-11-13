@@ -44,6 +44,11 @@
         }
     </script>
     <style>
+        /* Mobile viewport height fix */
+        :root {
+            --vh: 1vh;
+        }
+
         /* Glassmorphism Base */
         html, body {
             margin: 0;
@@ -60,6 +65,14 @@
         /* Prevent scrolling on login page only */
         body.no-scroll {
             overflow: hidden;
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+        }
+
+        /* Login container centering fix */
+        .login-container {
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
         }
 
         /* Animated background gradient */
@@ -131,14 +144,26 @@
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             min-width: 180px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .dropdown-menu-item {
             transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
         }
 
-        .dropdown-menu-item:hover {
+        .dropdown-menu-item:hover,
+        .dropdown-menu-item:active {
             background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Better touch handling for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            .dropdown-menu-item:active {
+                background: rgba(255, 255, 255, 0.2);
+            }
         }
 
         .context-menu {
@@ -528,6 +553,20 @@
             deferredPrompt = null;
             showToast('LANControl installed successfully!', 'success');
         });
+    </script>
+
+    <!-- Mobile viewport height calculation -->
+    <script>
+        // Calculate actual viewport height on mobile (accounting for browser UI)
+        function setVH() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        // Set on load and resize
+        setVH();
+        window.addEventListener('resize', setVH);
+        window.addEventListener('orientationchange', setVH);
     </script>
 
     {% block extra_scripts %}{% endblock %}
