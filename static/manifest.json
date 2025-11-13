@@ -2,11 +2,12 @@
   "name": "LANControl - Device Management",
   "short_name": "LANControl",
   "description": "Home LAN device management with network scanning and Wake-on-LAN capabilities",
-  "start_url": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e293b",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/static/icons/icon-72x72.png",

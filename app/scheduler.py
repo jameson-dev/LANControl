@@ -189,6 +189,14 @@ def init_scheduler(app):
     scheduler.start()
     print("Background scheduler started")
 
+    # Run an immediate status check on startup
+    print("Running initial device status check...")
+    try:
+        with app.app_context():
+            check_device_statuses()
+    except Exception as e:
+        print(f"Error in startup status check: {e}")
+
 
 def update_scan_interval(interval_seconds):
     """
