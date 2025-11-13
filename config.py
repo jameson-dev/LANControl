@@ -28,9 +28,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Session configuration
-    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
+    PERMANENT_SESSION_LIFETIME = timedelta(days=365)  # 1 year
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+
+    # Remember me configuration
+    REMEMBER_COOKIE_DURATION = timedelta(days=365)  # 1 year
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
 
     # Server configuration
     BIND_HOST = os.environ.get('BIND_HOST', '0.0.0.0')

@@ -3,17 +3,17 @@
 {% block title %}Login - LANControl{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="glass max-w-md w-full space-y-8 p-8 rounded-2xl">
+<div class="h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div class="glass max-w-md w-full space-y-6 p-8 rounded-2xl">
         <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
+            <h2 class="text-center text-3xl font-extrabold text-white">
                 LANControl
             </h2>
             <p class="mt-2 text-center text-sm text-gray-400">
                 Network Device Management
             </p>
         </div>
-        <form class="mt-8 space-y-6" method="POST" action="{{ url_for('auth.login') }}">
+        <form class="mt-6 space-y-5" method="POST" action="{{ url_for('auth.login') }}">
             <div class="space-y-4">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>

@@ -33,7 +33,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message = None  # Disable the "Please log in" flash message
-    login_manager.session_protection = 'strong'
+    login_manager.session_protection = 'basic'  # Use 'basic' instead of 'strong' to preserve sessions across IP changes
 
     # Register blueprints
     app.register_blueprint(auth_bp)

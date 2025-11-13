@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import db, User
 
@@ -32,7 +32,9 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password):
-            login_user(user, remember=remember)
+            # Always use remember=True for indefinite login
+            session.permanent = True
+            login_user(user, remember=True)
             if request.is_json:
                 return jsonify({'success': True, 'message': 'Login successful'})
             return redirect(url_for('main.dashboard'))
