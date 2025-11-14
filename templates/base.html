@@ -268,20 +268,7 @@
 
         /* Filter and Column dropdowns - ensure they appear above table */
         .filter-dropdown {
-            position: absolute !important;
-            z-index: 1000 !important;
-        }
-
-        /* Ensure parent containers don't interfere with z-index */
-        .glass.rounded-lg {
-            position: relative;
-            z-index: auto;
-        }
-
-        /* Table container should have lower z-index */
-        .overflow-x-auto {
-            position: relative;
-            z-index: 1;
+            z-index: 100 !important;
         }
     </style>
     {% block extra_head %}{% endblock %}
