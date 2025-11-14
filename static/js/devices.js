@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDevices();
     loadStats();
     setupEventListeners();
-    updateActiveFiltersCount();
 
     // Auto-refresh every 30 seconds
     startNormalRefresh();
@@ -58,6 +57,10 @@ function setupEventListeners() {
     searchInput.addEventListener('focus', showRecentSearches);
     searchInput.addEventListener('blur', () => setTimeout(hideRecentSearches, 200));
 
+    document.getElementById('groupFilter').addEventListener('change', filterDevices);
+    document.getElementById('statusFilter').addEventListener('change', filterDevices);
+    document.getElementById('favoritesOnly').addEventListener('change', filterDevices);
+    document.getElementById('groupingEnabled').addEventListener('change', toggleGrouping);
     document.getElementById('deviceForm').addEventListener('submit', saveDevice);
 
     // Initialize grouping checkbox state
@@ -1725,11 +1728,9 @@ function showColumnSettings() {
         return;
     }
 
-    const groupingEnabled = document.getElementById('groupingEnabled').checked;
-
     const dropdown = document.createElement('div');
     dropdown.id = 'columnSettingsDropdown';
-    dropdown.className = 'filter-dropdown absolute top-full right-0 mt-2 glass rounded-lg p-3 min-w-[200px]';
+    dropdown.className = 'absolute top-full right-0 mt-2 glass rounded-lg p-3 z-50 min-w-[200px]';
     dropdown.style.maxHeight = '400px';
     dropdown.style.overflowY = 'auto';
 
@@ -1745,20 +1746,12 @@ function showColumnSettings() {
             </label>
         `).join('')}
         <div class="border-t border-white/10 my-2"></div>
-        <label class="flex items-center space-x-2 py-2 hover:bg-white/10 rounded px-2 cursor-pointer">
-            <input type="checkbox"
-                   id="groupingEnabledColumn"
-                   ${groupingEnabled ? 'checked' : ''}
-                   onchange="toggleGroupingFromColumn(this.checked)"
-                   class="form-checkbox h-4 w-4 text-blue-600 rounded">
-            <span class="text-sm text-gray-300">Group Devices</span>
-        </label>
-        <div class="border-t border-white/10 my-2"></div>
         <a href="/settings" class="block text-sm text-blue-400 hover:text-blue-300 px-2 py-1">
             Rename columns in Settings →
         </a>
     `;
 
+    // Position relative to a button (we'll add this button to the dashboard)
     const button = document.getElementById('columnSettingsBtn');
     if (button) {
         button.parentElement.style.position = 'relative';
@@ -1774,148 +1767,4 @@ function showColumnSettings() {
             }
         });
     }, 0);
-}
-
-// Toggle grouping from column dropdown
-function toggleGroupingFromColumn(enabled) {
-    document.getElementById('groupingEnabled').checked = enabled;
-    groupingEnabled = enabled;
-    localStorage.setItem('groupingEnabled', JSON.stringify(groupingEnabled));
-    filterDevices();
-}
-
-// Show filters dropdown
-function showFiltersDropdown() {
-    const existing = document.getElementById('filtersDropdown');
-    if (existing) {
-        existing.remove();
-        return;
-    }
-
-    const dropdown = document.createElement('div');
-    dropdown.id = 'filtersDropdown';
-    dropdown.className = 'filter-dropdown absolute top-full right-0 mt-2 glass rounded-lg p-4 min-w-[280px]';
-
-    const currentGroup = document.getElementById('groupFilter').value;
-    const currentStatus = document.getElementById('statusFilter').value;
-    const favoritesOnly = document.getElementById('favoritesOnly').checked;
-
-    // Get available groups
-    const groups = [...new Set(allDevices.map(d => d.group).filter(g => g))];
-
-    dropdown.innerHTML = `
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-medium text-gray-400 mb-2">GROUP</label>
-                <select id="groupFilterDropdown" class="w-full px-3 py-2 glass-input rounded-lg text-white text-sm">
-                    <option value="">All Groups</option>
-                    ${groups.map(g => `<option value="${g}" ${currentGroup === g ? 'selected' : ''}>${g}</option>`).join('')}
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-gray-400 mb-2">STATUS</label>
-                <select id="statusFilterDropdown" class="w-full px-3 py-2 glass-input rounded-lg text-white text-sm">
-                    <option value="" ${!currentStatus ? 'selected' : ''}>All Status</option>
-                    <option value="online" ${currentStatus === 'online' ? 'selected' : ''}>Online</option>
-                    <option value="offline" ${currentStatus === 'offline' ? 'selected' : ''}>Offline</option>
-                    <option value="unknown" ${currentStatus === 'unknown' ? 'selected' : ''}>Unknown</option>
-                </select>
-            </div>
-
-            <div class="border-t border-white/10 pt-3">
-                <label class="flex items-center space-x-2 cursor-pointer py-1">
-                    <input type="checkbox"
-                           id="favoritesOnlyDropdown"
-                           ${favoritesOnly ? 'checked' : ''}
-                           class="form-checkbox h-4 w-4 text-blue-600 rounded">
-                    <span class="text-sm text-white">Favorites Only</span>
-                </label>
-            </div>
-
-            <div class="border-t border-white/10 pt-3 flex gap-2">
-                <button onclick="applyFilters()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition">
-                    Apply
-                </button>
-                <button onclick="clearFilters()" class="flex-1 px-3 py-2 glass hover:glass-hover text-white rounded-lg text-sm font-medium transition">
-                    Clear
-                </button>
-            </div>
-        </div>
-    `;
-
-    const button = document.getElementById('filtersBtn');
-    if (button) {
-        button.parentElement.style.position = 'relative';
-        button.parentElement.appendChild(dropdown);
-    }
-
-    // Add event listeners for real-time updates
-    dropdown.querySelector('#groupFilterDropdown').addEventListener('change', applyFilters);
-    dropdown.querySelector('#statusFilterDropdown').addEventListener('change', applyFilters);
-    dropdown.querySelector('#favoritesOnlyDropdown').addEventListener('change', applyFilters);
-
-    // Close when clicking outside
-    setTimeout(() => {
-        document.addEventListener('click', function closeDropdown(e) {
-            if (!dropdown.contains(e.target) && !e.target.closest('#filtersBtn')) {
-                dropdown.remove();
-                document.removeEventListener('click', closeDropdown);
-            }
-        });
-    }, 0);
-}
-
-// Apply filters from dropdown
-function applyFilters() {
-    const dropdown = document.getElementById('filtersDropdown');
-    if (!dropdown) return;
-
-    // Update hidden inputs from dropdown
-    document.getElementById('groupFilter').value = dropdown.querySelector('#groupFilterDropdown').value;
-    document.getElementById('statusFilter').value = dropdown.querySelector('#statusFilterDropdown').value;
-    document.getElementById('favoritesOnly').checked = dropdown.querySelector('#favoritesOnlyDropdown').checked;
-
-    // Update active filter count badge
-    updateActiveFiltersCount();
-
-    // Apply filters
-    filterDevices();
-}
-
-// Clear all filters
-function clearFilters() {
-    document.getElementById('groupFilter').value = '';
-    document.getElementById('statusFilter').value = '';
-    document.getElementById('favoritesOnly').checked = false;
-
-    const dropdown = document.getElementById('filtersDropdown');
-    if (dropdown) {
-        dropdown.querySelector('#groupFilterDropdown').value = '';
-        dropdown.querySelector('#statusFilterDropdown').value = '';
-        dropdown.querySelector('#favoritesOnlyDropdown').checked = false;
-    }
-
-    updateActiveFiltersCount();
-    filterDevices();
-}
-
-// Update active filters count badge
-function updateActiveFiltersCount() {
-    const group = document.getElementById('groupFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    const favoritesOnly = document.getElementById('favoritesOnly').checked;
-
-    let count = 0;
-    if (group) count++;
-    if (status) count++;
-    if (favoritesOnly) count++;
-
-    const badge = document.getElementById('activeFiltersCount');
-    if (count > 0) {
-        badge.textContent = count;
-        badge.classList.remove('hidden');
-    } else {
-        badge.classList.add('hidden');
-    }
 }

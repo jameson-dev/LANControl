@@ -98,29 +98,37 @@
 
     <!-- Filters and Search -->
     <div class="glass rounded-lg p-3 sm:p-4">
-        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <div class="flex-1">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+            <div class="flex-1 sm:min-w-64">
                 <input type="text"
                        id="searchInput"
                        placeholder="Search devices..."
-                       class="w-full px-3 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                       class="w-full px-3 sm:px-4 py-2 glass-input rounded-lg text-white placeholder-gray-400">
             </div>
-            <div class="flex gap-2">
-                <div class="relative">
-                    <button id="filtersBtn"
-                            onclick="showFiltersDropdown()"
-                            class="px-3 py-2 glass rounded-lg hover:glass-hover transition flex items-center gap-2 text-white whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                        </svg>
-                        <span>Filters</span>
-                        <span id="activeFiltersCount" class="hidden px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full"></span>
-                    </button>
-                </div>
+            <div class="flex gap-3 flex-wrap">
+                <select id="groupFilter"
+                        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 glass-input rounded-lg text-white">
+                    <option value="">All Groups</option>
+                </select>
+                <select id="statusFilter"
+                        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 glass-input rounded-lg text-white">
+                    <option value="">All Status</option>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                    <option value="unknown">Unknown</option>
+                </select>
+                <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 glass rounded-lg cursor-pointer hover:glass-hover transition">
+                    <input type="checkbox" id="favoritesOnly" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="text-white text-sm sm:text-base">Favorites Only</span>
+                </label>
+                <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 glass rounded-lg cursor-pointer hover:glass-hover transition">
+                    <input type="checkbox" id="groupingEnabled" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                    <span class="text-white text-sm sm:text-base">Group Devices</span>
+                </label>
                 <div class="relative">
                     <button id="columnSettingsBtn"
                             onclick="showColumnSettings()"
-                            class="px-3 py-2 glass rounded-lg hover:glass-hover transition flex items-center gap-2 text-white">
+                            class="px-3 sm:px-4 py-2 glass rounded-lg hover:glass-hover transition flex items-center gap-2 text-white">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                         </svg>
@@ -129,19 +137,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Hidden filter inputs (used by the dropdown) -->
-        <select id="groupFilter" class="hidden">
-            <option value="">All Groups</option>
-        </select>
-        <select id="statusFilter" class="hidden">
-            <option value="">All Status</option>
-            <option value="online">Online</option>
-            <option value="offline">Offline</option>
-            <option value="unknown">Unknown</option>
-        </select>
-        <input type="checkbox" id="favoritesOnly" class="hidden">
-        <input type="checkbox" id="groupingEnabled" class="hidden" checked>
     </div>
 
     <!-- Devices List - Desktop Table View -->
