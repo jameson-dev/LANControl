@@ -265,6 +265,11 @@
             user-select: none;
             cursor: col-resize !important;
         }
+
+        /* Filter and Column dropdowns - ensure they appear above table */
+        .filter-dropdown {
+            z-index: 100 !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
