@@ -3,6 +3,10 @@ let allDevices = [];
 let currentSort = { field: 'nickname', direction: 'asc' };
 let refreshInterval = null;
 let fastRefreshInterval = null;
+let collapsedGroups = new Set(); // Track collapsed groups
+let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+let savedFilters = JSON.parse(localStorage.getItem('savedFilters') || '{}');
+let selectedDevices = new Set(); // Track selected device IDs for bulk operations
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -40,7 +44,12 @@ function startFastRefresh() {
 
 // Setup event listeners
 function setupEventListeners() {
-    document.getElementById('searchInput').addEventListener('input', filterDevices);
+    const searchInput = document.getElementById('searchInput');
+
+    searchInput.addEventListener('input', filterDevices);
+    searchInput.addEventListener('focus', showRecentSearches);
+    searchInput.addEventListener('blur', () => setTimeout(hideRecentSearches, 200));
+
     document.getElementById('groupFilter').addEventListener('change', filterDevices);
     document.getElementById('statusFilter').addEventListener('change', filterDevices);
     document.getElementById('favoritesOnly').addEventListener('change', filterDevices);
@@ -102,6 +111,11 @@ function filterDevices() {
     const status = document.getElementById('statusFilter').value;
     const favoritesOnly = document.getElementById('favoritesOnly').checked;
 
+    // Add to recent searches if it's a new non-empty search
+    if (search && search.length >= 2) {
+        addToRecentSearches(search);
+    }
+
     let filtered = allDevices.filter(device => {
         // Search filter
         if (search && !matchesSearch(device, search)) {
@@ -131,6 +145,75 @@ function filterDevices() {
 
     // Display devices
     displayDevices(filtered);
+}
+
+// Add search term to recent searches
+function addToRecentSearches(term) {
+    // Remove if already exists
+    recentSearches = recentSearches.filter(s => s !== term);
+    // Add to beginning
+    recentSearches.unshift(term);
+    // Keep only last 10
+    recentSearches = recentSearches.slice(0, 10);
+    // Save to localStorage
+    localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+}
+
+// Show recent searches dropdown
+function showRecentSearches() {
+    if (recentSearches.length === 0) return;
+
+    const searchInput = document.getElementById('searchInput');
+    let dropdown = document.getElementById('recentSearchesDropdown');
+
+    // Remove existing dropdown
+    if (dropdown) dropdown.remove();
+
+    // Create dropdown
+    dropdown = document.createElement('div');
+    dropdown.id = 'recentSearchesDropdown';
+    dropdown.className = 'absolute top-full left-0 right-0 mt-1 glass rounded-lg overflow-hidden z-50 max-h-60 overflow-y-auto';
+
+    dropdown.innerHTML = `
+        <div class="p-2">
+            <div class="flex items-center justify-between px-3 py-2">
+                <span class="text-xs font-medium text-gray-400">RECENT SEARCHES</span>
+                <button onclick="clearRecentSearches()" class="text-xs text-red-400 hover:text-red-300">Clear</button>
+            </div>
+            ${recentSearches.map(term => `
+                <button onclick="applySearch('${term}')"
+                        class="w-full text-left px-3 py-2 hover:bg-white/10 rounded text-sm text-white flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    ${term}
+                </button>
+            `).join('')}
+        </div>
+    `;
+
+    searchInput.parentElement.style.position = 'relative';
+    searchInput.parentElement.appendChild(dropdown);
+}
+
+// Apply a search term
+function applySearch(term) {
+    document.getElementById('searchInput').value = term;
+    filterDevices();
+    hideRecentSearches();
+}
+
+// Hide recent searches dropdown
+function hideRecentSearches() {
+    const dropdown = document.getElementById('recentSearchesDropdown');
+    if (dropdown) dropdown.remove();
+}
+
+// Clear recent searches
+function clearRecentSearches() {
+    recentSearches = [];
+    localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+    hideRecentSearches();
 }
 
 // Check if device matches search term
@@ -171,6 +254,70 @@ function sortCompare(a, b, field, direction) {
     if (aVal < bVal) return direction === 'asc' ? -1 : 1;
     if (aVal > bVal) return direction === 'asc' ? 1 : -1;
     return 0;
+}
+
+// Toggle group collapse
+function toggleGroupCollapse(groupName) {
+    if (collapsedGroups.has(groupName)) {
+        collapsedGroups.delete(groupName);
+    } else {
+        collapsedGroups.add(groupName);
+    }
+    // Re-render to apply changes
+    filterDevices();
+}
+
+// Render a single device row
+function renderDeviceRow(device) {
+    const isSelected = selectedDevices.has(device.id);
+    return `
+        <tr class="hover:bg-white/5 transition ${device.is_favorite ? 'bg-yellow-500/5 border-l-2 border-yellow-500/50' : ''} ${isSelected ? 'bg-blue-500/10' : ''}" data-device-id="${device.id}">
+            <td class="px-4 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                <input type="checkbox"
+                       class="device-checkbox form-checkbox h-5 w-5 text-blue-600 rounded"
+                       data-device-id="${device.id}"
+                       ${isSelected ? 'checked' : ''}
+                       onchange="toggleDeviceSelection(${device.id}, this.checked)">
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
+                      title="${device.status}">
+                </span>
+            </td>
+            <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                    ${renderDeviceIcon(device.icon || 'device', 'w-6 h-6')}
+                    <div class="text-sm font-medium text-white">
+                        ${device.nickname || device.hostname || '-'}
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                ${device.ip || '-'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">
+                ${device.mac}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                ${device.vendor || 'Unknown'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                ${device.group || '-'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                ${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button class="action-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
+                        onclick="showActionSheet(${device.id})"
+                        title="Actions">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                    </svg>
+                </button>
+            </td>
+        </tr>
+    `;
 }
 
 // Display devices in table
@@ -220,56 +367,85 @@ function displayDevices(devices) {
         return;
     }
 
-    // Desktop table view
-    tbody.innerHTML = devices.map(device => `
-        <tr class="hover:bg-white/5 transition cursor-pointer ${device.is_favorite ? 'bg-yellow-500/5 border-l-2 border-yellow-500/50' : ''}" data-device-id="${device.id}">
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
-                      title="${device.status}">
-                </span>
-            </td>
-            <td class="px-6 py-4">
-                <div class="text-sm font-medium text-white">
-                    ${device.nickname || device.hostname || '-'}
-                </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                ${device.ip || '-'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 font-mono">
-                ${device.mac}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                ${device.vendor || 'Unknown'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                ${device.group || '-'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                ${device.last_seen ? formatDateTime(device.last_seen) : 'Never'}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button class="action-toggle text-gray-400 hover:text-white transition p-2 rounded-lg hover:bg-white/10"
-                        onclick="showActionSheet(${device.id})"
-                        title="Actions">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
-                    </svg>
-                </button>
-            </td>
-        </tr>
-    `).join('');
+    // Group devices by group name
+    const grouped = {};
+    const ungrouped = [];
+
+    devices.forEach(device => {
+        if (device.group) {
+            if (!grouped[device.group]) grouped[device.group] = [];
+            grouped[device.group].push(device);
+        } else {
+            ungrouped.push(device);
+        }
+    });
+
+    // Desktop table view with grouping
+    let tableHTML = '';
+
+    // Render grouped devices
+    Object.keys(grouped).sort().forEach(groupName => {
+        const groupDevices = grouped[groupName];
+        const isCollapsed = collapsedGroups.has(groupName);
+        const onlineCount = groupDevices.filter(d => d.status === 'online').length;
+
+        // Group header row
+        tableHTML += `
+            <tr class="glass bg-white/5 border-t-2 border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="toggleGroupCollapse('${groupName}')">
+                <td colspan="9" class="px-6 py-3">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-semibold text-white">${groupName}</span>
+                        <span class="text-sm text-gray-400">(${onlineCount}/${groupDevices.length} online)</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        // Group devices (if not collapsed)
+        if (!isCollapsed) {
+            groupDevices.forEach(device => {
+                tableHTML += renderDeviceRow(device);
+            });
+        }
+    });
+
+    // Render ungrouped devices
+    if (ungrouped.length > 0) {
+        if (Object.keys(grouped).length > 0) {
+            tableHTML += `
+                <tr class="glass bg-white/5 border-t-2 border-white/10">
+                    <td colspan="9" class="px-6 py-3">
+                        <div class="flex items-center gap-3">
+                            <span class="font-semibold text-gray-400">Ungrouped Devices</span>
+                            <span class="text-sm text-gray-500">(${ungrouped.length})</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        ungrouped.forEach(device => {
+            tableHTML += renderDeviceRow(device);
+        });
+    }
+
+    tbody.innerHTML = tableHTML;
 
     // Mobile card view
     cards.innerHTML = devices.map(device => `
         <div class="device-card glass rounded-lg p-4 hover:glass-hover transition cursor-pointer ${device.is_favorite ? 'bg-yellow-500/5 border-l-4 border-yellow-500/50' : ''}" data-device-id="${device.id}">
             <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-2">
-                    <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
-                          title="${device.status}">
-                    </span>
-                    <div class="text-base font-medium text-white">
-                        ${device.nickname || device.hostname || '-'}
+                <div class="flex items-center gap-3">
+                    ${renderDeviceIcon(device.icon || 'device', 'w-8 h-8')}
+                    <div>
+                        <span class="inline-block w-3 h-3 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}"
+                              title="${device.status}">
+                        </span>
+                        <div class="text-base font-medium text-white mt-1">
+                            ${device.nickname || device.hostname || '-'}
+                        </div>
                     </div>
                 </div>
                 <button class="action-toggle text-gray-400 hover:text-white active:text-white transition p-2 rounded-lg hover:bg-white/10 active:bg-white/20"
@@ -421,6 +597,8 @@ function showAddDeviceModal() {
     document.getElementById('deviceForm').reset();
     document.getElementById('deviceId').value = '';
     document.getElementById('deviceMac').disabled = false;
+    document.getElementById('deviceIcon').value = 'device';
+    initIconPicker();
     document.getElementById('deviceModal').classList.remove('hidden');
 }
 
@@ -438,7 +616,11 @@ function showEditDeviceModal(deviceId) {
     document.getElementById('deviceHostname').value = device.hostname || '';
     document.getElementById('deviceGroup').value = device.group || '';
     document.getElementById('deviceType').value = device.device_type || '';
+    document.getElementById('deviceIcon').value = device.icon || 'device';
     document.getElementById('deviceFavorite').checked = device.is_favorite;
+
+    // Initialize icon picker with current selection
+    initIconPicker();
 
     // Switch to overview tab by default
     switchTabByName('overview');
@@ -467,6 +649,7 @@ async function saveDevice(e) {
         hostname: document.getElementById('deviceHostname').value || null,
         group: document.getElementById('deviceGroup').value || null,
         device_type: document.getElementById('deviceType').value || null,
+        icon: document.getElementById('deviceIcon').value || 'device',
         is_favorite: document.getElementById('deviceFavorite').checked
     };
 
@@ -948,4 +1131,280 @@ async function scanDevicePortsInModal(scanType) {
             </div>
         `;
     }
+}
+
+/**
+ * BULK OPERATIONS
+ */
+
+// Toggle device selection
+function toggleDeviceSelection(deviceId, isSelected) {
+    if (isSelected) {
+        selectedDevices.add(deviceId);
+    } else {
+        selectedDevices.delete(deviceId);
+    }
+    updateBulkActionsBar();
+    updateSelectAllCheckbox();
+}
+
+// Toggle select all devices
+function toggleSelectAll(isSelected) {
+    const visibleDevices = Array.from(document.querySelectorAll('.device-checkbox'));
+    visibleDevices.forEach(checkbox => {
+        const deviceId = parseInt(checkbox.dataset.deviceId);
+        checkbox.checked = isSelected;
+        if (isSelected) {
+            selectedDevices.add(deviceId);
+        } else {
+            selectedDevices.delete(deviceId);
+        }
+    });
+    updateBulkActionsBar();
+}
+
+// Update select all checkbox state
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (!selectAllCheckbox) return;
+
+    const visibleCheckboxes = document.querySelectorAll('.device-checkbox');
+    const checkedCount = Array.from(visibleCheckboxes).filter(cb => cb.checked).length;
+
+    if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === visibleCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// Update bulk actions bar visibility and count
+function updateBulkActionsBar() {
+    const bar = document.getElementById('bulkActionsBar');
+    const count = document.getElementById('selectedCount');
+
+    if (selectedDevices.size > 0) {
+        bar.classList.remove('hidden');
+        count.textContent = selectedDevices.size;
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+// Clear selection
+function clearSelection() {
+    selectedDevices.clear();
+    document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = false);
+    updateBulkActionsBar();
+    updateSelectAllCheckbox();
+    // Re-render to remove highlighting
+    filterDevices();
+}
+
+// Bulk Wake-on-LAN
+async function bulkWakeOnLAN() {
+    if (selectedDevices.size === 0) return;
+
+    const deviceIds = Array.from(selectedDevices);
+    const deviceNames = deviceIds.map(id => {
+        const device = allDevices.find(d => d.id === id);
+        return device ? (device.nickname || device.hostname || device.mac) : `Device ${id}`;
+    });
+
+    if (!confirm(`Send Wake-on-LAN packets to ${deviceIds.length} device(s)?\n\n${deviceNames.slice(0, 5).join('\n')}${deviceIds.length > 5 ? '\n...' : ''}`)) {
+        return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const deviceId of deviceIds) {
+        try {
+            await apiCall(`/api/devices/${deviceId}/wol`, { method: 'POST' });
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showToast(`WOL packets sent to ${successCount} device(s)`, 'success');
+    }
+    if (errorCount > 0) {
+        showToast(`Failed to send to ${errorCount} device(s)`, 'error');
+    }
+
+    clearSelection();
+}
+
+// Show bulk group assignment dialog
+function showBulkGroupDialog() {
+    if (selectedDevices.size === 0) return;
+
+    const groups = [...new Set(allDevices.map(d => d.group).filter(g => g))];
+    const deviceCount = selectedDevices.size;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'bulkGroupModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+
+    modal.innerHTML = `
+        <div class="glass rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-white mb-4">Set Group for ${deviceCount} Device(s)</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Select or enter group name:</label>
+                    <input type="text"
+                           id="bulkGroupInput"
+                           list="groupSuggestions"
+                           placeholder="Enter group name..."
+                           class="w-full px-4 py-2 glass-input rounded-lg text-white placeholder-gray-400">
+                    <datalist id="groupSuggestions">
+                        ${groups.map(g => `<option value="${g}">`).join('')}
+                    </datalist>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="applyBulkGroup()"
+                            class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                        Apply
+                    </button>
+                    <button onclick="closeBulkGroupDialog()"
+                            class="flex-1 px-4 py-2 glass hover:glass-hover text-white rounded-lg font-medium transition">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.getElementById('bulkGroupInput').focus();
+}
+
+// Close bulk group dialog
+function closeBulkGroupDialog() {
+    const modal = document.getElementById('bulkGroupModal');
+    if (modal) modal.remove();
+}
+
+// Apply bulk group assignment
+async function applyBulkGroup() {
+    const groupName = document.getElementById('bulkGroupInput').value.trim();
+    if (!groupName) {
+        showToast('Please enter a group name', 'error');
+        return;
+    }
+
+    closeBulkGroupDialog();
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const deviceId of selectedDevices) {
+        try {
+            await apiCall(`/api/devices/${deviceId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ group: groupName })
+            });
+            // Update local device data
+            const device = allDevices.find(d => d.id === deviceId);
+            if (device) device.group = groupName;
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showToast(`Updated group for ${successCount} device(s)`, 'success');
+        loadDevices(); // Reload to update grouping
+    }
+    if (errorCount > 0) {
+        showToast(`Failed to update ${errorCount} device(s)`, 'error');
+    }
+
+    clearSelection();
+}
+
+// Bulk toggle favorite
+async function bulkToggleFavorite() {
+    if (selectedDevices.size === 0) return;
+
+    // Check if all selected are favorites or not
+    const selectedDevicesList = Array.from(selectedDevices).map(id => allDevices.find(d => d.id === id));
+    const allFavorites = selectedDevicesList.every(d => d && d.is_favorite);
+    const newFavoriteState = !allFavorites;
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const deviceId of selectedDevices) {
+        try {
+            await apiCall(`/api/devices/${deviceId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ is_favorite: newFavoriteState })
+            });
+            // Update local device data
+            const device = allDevices.find(d => d.id === deviceId);
+            if (device) device.is_favorite = newFavoriteState;
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showToast(`${newFavoriteState ? 'Added' : 'Removed'} ${successCount} device(s) ${newFavoriteState ? 'to' : 'from'} favorites`, 'success');
+        loadStats();
+        filterDevices();
+    }
+    if (errorCount > 0) {
+        showToast(`Failed to update ${errorCount} device(s)`, 'error');
+    }
+
+    clearSelection();
+}
+
+// Bulk delete devices
+async function bulkDelete() {
+    if (selectedDevices.size === 0) return;
+
+    const deviceIds = Array.from(selectedDevices);
+    const deviceNames = deviceIds.map(id => {
+        const device = allDevices.find(d => d.id === id);
+        return device ? (device.nickname || device.hostname || device.mac) : `Device ${id}`;
+    });
+
+    if (!confirm(`⚠️ Are you sure you want to delete ${deviceIds.length} device(s)?\n\nThis action cannot be undone.\n\n${deviceNames.slice(0, 5).join('\n')}${deviceIds.length > 5 ? '\n...' : ''}`)) {
+        return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const deviceId of deviceIds) {
+        try {
+            await apiCall(`/api/devices/${deviceId}`, { method: 'DELETE' });
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showToast(`Deleted ${successCount} device(s)`, 'success');
+        loadDevices();
+        loadStats();
+    }
+    if (errorCount > 0) {
+        showToast(`Failed to delete ${errorCount} device(s)`, 'error');
+    }
+
+    clearSelection();
 }
