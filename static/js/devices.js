@@ -55,15 +55,6 @@ function setupEventListeners() {
     document.getElementById('favoritesOnly').addEventListener('change', filterDevices);
     document.getElementById('deviceForm').addEventListener('submit', saveDevice);
 
-    // Close filter dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-        const dropdown = document.getElementById('filterDropdown');
-        const button = document.getElementById('filterDropdownBtn');
-        if (dropdown && !dropdown.contains(event.target) && !button.contains(event.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-
     // Initialize filter badge
     updateFilterBadge();
 }
@@ -1422,23 +1413,26 @@ async function bulkDelete() {
 }
 
 /**
- * FILTER DROPDOWN FUNCTIONS
+ * FILTER MODAL FUNCTIONS
  */
 
-// Toggle filter dropdown visibility
-function toggleFilterDropdown() {
-    const dropdown = document.getElementById('filterDropdown');
-    const button = document.getElementById('filterDropdownBtn');
+// Show filter modal
+function showFilterModal() {
+    document.getElementById('filterModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
 
-    if (dropdown.classList.contains('hidden')) {
-        // Position the dropdown relative to the button
-        const rect = button.getBoundingClientRect();
-        dropdown.style.top = `${rect.bottom + 8}px`; // 8px margin
-        dropdown.style.right = `${window.innerWidth - rect.right}px`;
-        dropdown.classList.remove('hidden');
-    } else {
-        dropdown.classList.add('hidden');
-    }
+// Close filter modal
+function closeFilterModal() {
+    document.getElementById('filterModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Apply filters and close modal
+function applyFilters() {
+    updateFilterBadge();
+    filterDevices();
+    closeFilterModal();
 }
 
 // Update filter badge count
