@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadEmailSettings();
     loadAlertRules();
     loadScanStatus();
-    loadColumnConfig();
     setupEventListeners();
 
     // Update scan status every 10 seconds
@@ -363,70 +362,4 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-/**
- * COLUMN CONFIGURATION
- */
-
-// Load column configuration
-async function loadColumnConfig() {
-    try {
-        const data = await apiCall('/api/columns');
-        const columns = data.columns.filter(c => c.column_id !== 'checkbox' && c.column_id !== 'actions');
-
-        const columnsList = document.getElementById('columnsList');
-        columnsList.innerHTML = columns.map(col => `
-            <div class="flex items-center gap-3 glass-input rounded-lg p-3">
-                <div class="flex-1">
-                    <label class="block text-xs text-gray-400 mb-1">${col.column_id.toUpperCase()}</label>
-                    <input type="text"
-                           value="${escapeHtml(col.display_name)}"
-                           data-column-id="${col.column_id}"
-                           onchange="updateColumnName('${col.column_id}', this.value)"
-                           class="w-full px-3 py-2 glass-input rounded text-white placeholder-gray-400 text-sm">
-                </div>
-                <div class="text-gray-400 text-xs">
-                    ${col.is_visible ? '👁️ Visible' : '👁️‍🗨️ Hidden'}
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        showToast('Error loading columns: ' + error.message, 'error');
-    }
-}
-
-// Update column display name
-async function updateColumnName(columnId, newName) {
-    if (!newName.trim()) {
-        showToast('Column name cannot be empty', 'error');
-        loadColumnConfig(); // Reload to restore old value
-        return;
-    }
-
-    try {
-        await apiCall(`/api/columns/${columnId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ display_name: newName.trim() })
-        });
-        showToast('Column name updated', 'success');
-    } catch (error) {
-        showToast('Error updating column: ' + error.message, 'error');
-        loadColumnConfig(); // Reload to restore old value
-    }
-}
-
-// Reset columns to defaults
-async function resetColumns() {
-    if (!confirm('Reset all columns to default names and settings? This cannot be undone.')) {
-        return;
-    }
-
-    try {
-        await apiCall('/api/columns/reset', { method: 'POST' });
-        showToast('Columns reset to defaults', 'success');
-        loadColumnConfig();
-    } catch (error) {
-        showToast('Error resetting columns: ' + error.message, 'error');
-    }
 }
