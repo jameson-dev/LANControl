@@ -1428,7 +1428,17 @@ async function bulkDelete() {
 // Toggle filter dropdown visibility
 function toggleFilterDropdown() {
     const dropdown = document.getElementById('filterDropdown');
-    dropdown.classList.toggle('hidden');
+    const button = document.getElementById('filterDropdownBtn');
+
+    if (dropdown.classList.contains('hidden')) {
+        // Position the dropdown relative to the button
+        const rect = button.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom + 8}px`; // 8px margin
+        dropdown.style.right = `${window.innerWidth - rect.right}px`;
+        dropdown.classList.remove('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+    }
 }
 
 // Update filter badge count
