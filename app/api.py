@@ -5,7 +5,7 @@ import json
 import csv
 import io
 from threading import Thread
-from app.models import db, Device, DeviceHistory, Setting, DevicePort, DeviceAlert, AlertRule
+from app.models import db, Device, DeviceHistory, Setting, DevicePort, DeviceAlert, AlertRule, ColumnConfig
 from app.scanner import scan_network, check_device_status, get_scan_status, update_device_from_scan, quick_scan_known_devices
 from app.wol import send_wol_packet, send_bulk_wol
 from app.utils import validate_mac, validate_ip, normalize_mac, calculate_uptime_percentage
@@ -1021,4 +1021,151 @@ def get_top_devices():
         'success': True,
         'most_active': active_devices,
         'most_ports': port_devices
+    })
+
+
+# ============================================================================
+# COLUMN CONFIGURATION ENDPOINTS
+# ============================================================================
+
+@api_bp.route('/columns', methods=['GET'])
+@login_required
+def get_column_config():
+    """Get column configuration"""
+    columns = ColumnConfig.query.order_by(ColumnConfig.position).all()
+
+    # If no columns configured, return defaults
+    if not columns:
+        return jsonify({
+            'success': True,
+            'columns': ColumnConfig.get_default_columns()
+        })
+
+    return jsonify({
+        'success': True,
+        'columns': [c.to_dict() for c in columns]
+    })
+
+
+@api_bp.route('/columns', methods=['PUT'])
+@login_required
+def update_column_config():
+    """Update column configuration (bulk update)"""
+    data = request.get_json()
+    columns_data = data.get('columns', [])
+
+    if not columns_data:
+        return jsonify({'success': False, 'message': 'No column data provided'}), 400
+
+    # Update or create each column config
+    for col_data in columns_data:
+        column_id = col_data.get('column_id')
+        if not column_id:
+            continue
+
+        column = ColumnConfig.query.filter_by(column_id=column_id).first()
+
+        if column:
+            # Update existing
+            if 'display_name' in col_data:
+                column.display_name = col_data['display_name']
+            if 'is_visible' in col_data:
+                column.is_visible = col_data['is_visible']
+            if 'width' in col_data:
+                column.width = col_data['width']
+            if 'position' in col_data:
+                column.position = col_data['position']
+            if 'is_sortable' in col_data:
+                column.is_sortable = col_data['is_sortable']
+        else:
+            # Create new
+            column = ColumnConfig(
+                column_id=column_id,
+                display_name=col_data.get('display_name', column_id.title()),
+                is_visible=col_data.get('is_visible', True),
+                width=col_data.get('width'),
+                position=col_data.get('position', 0),
+                is_sortable=col_data.get('is_sortable', True)
+            )
+            db.session.add(column)
+
+    db.session.commit()
+
+    # Return updated columns
+    columns = ColumnConfig.query.order_by(ColumnConfig.position).all()
+    return jsonify({
+        'success': True,
+        'message': 'Column configuration updated',
+        'columns': [c.to_dict() for c in columns]
+    })
+
+
+@api_bp.route('/columns/<column_id>', methods=['PUT'])
+@login_required
+def update_single_column(column_id):
+    """Update a single column configuration"""
+    data = request.get_json()
+
+    column = ColumnConfig.query.filter_by(column_id=column_id).first()
+
+    if not column:
+        # Create if doesn't exist
+        column = ColumnConfig(
+            column_id=column_id,
+            display_name=data.get('display_name', column_id.title()),
+            is_visible=data.get('is_visible', True),
+            width=data.get('width'),
+            position=data.get('position', 0),
+            is_sortable=data.get('is_sortable', True)
+        )
+        db.session.add(column)
+    else:
+        # Update existing
+        if 'display_name' in data:
+            column.display_name = data['display_name']
+        if 'is_visible' in data:
+            column.is_visible = data['is_visible']
+        if 'width' in data:
+            column.width = data['width']
+        if 'position' in data:
+            column.position = data['position']
+        if 'is_sortable' in data:
+            column.is_sortable = data['is_sortable']
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': 'Column updated',
+        'column': column.to_dict()
+    })
+
+
+@api_bp.route('/columns/reset', methods=['POST'])
+@login_required
+def reset_column_config():
+    """Reset column configuration to defaults"""
+    # Delete all existing column configs
+    ColumnConfig.query.delete()
+
+    # Create default columns
+    defaults = ColumnConfig.get_default_columns()
+    for col_data in defaults:
+        column = ColumnConfig(
+            column_id=col_data['column_id'],
+            display_name=col_data['display_name'],
+            is_visible=col_data['is_visible'],
+            width=col_data['width'],
+            position=col_data['position'],
+            is_sortable=col_data['is_sortable']
+        )
+        db.session.add(column)
+
+    db.session.commit()
+
+    columns = ColumnConfig.query.order_by(ColumnConfig.position).all()
+    return jsonify({
+        'success': True,
+        'message': 'Column configuration reset to defaults',
+        'columns': [c.to_dict() for c in columns]
     })

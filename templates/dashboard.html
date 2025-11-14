@@ -71,6 +71,13 @@
                     </svg>
                     Set Group
                 </button>
+                <button onclick="showBulkIconDialog()"
+                        class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-lg font-medium transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Set Icon
+                </button>
                 <button onclick="bulkToggleFavorite()"
                         class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 rounded-lg font-medium transition flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,6 +121,20 @@
                     <input type="checkbox" id="favoritesOnly" class="form-checkbox h-5 w-5 text-blue-600">
                     <span class="text-white text-sm sm:text-base">Favorites Only</span>
                 </label>
+                <label class="flex items-center space-x-2 px-3 sm:px-4 py-2 glass rounded-lg cursor-pointer hover:glass-hover transition">
+                    <input type="checkbox" id="groupingEnabled" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                    <span class="text-white text-sm sm:text-base">Group Devices</span>
+                </label>
+                <div class="relative">
+                    <button id="columnSettingsBtn"
+                            onclick="showColumnSettings()"
+                            class="px-3 sm:px-4 py-2 glass rounded-lg hover:glass-hover transition flex items-center gap-2 text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        <span class="hidden sm:inline">Columns</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

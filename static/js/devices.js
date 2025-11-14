@@ -7,9 +7,16 @@ let collapsedGroups = new Set(); // Track collapsed groups
 let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
 let savedFilters = JSON.parse(localStorage.getItem('savedFilters') || '{}');
 let selectedDevices = new Set(); // Track selected device IDs for bulk operations
+let groupingEnabled = JSON.parse(localStorage.getItem('groupingEnabled') !== null ? localStorage.getItem('groupingEnabled') : 'true');
+let columnConfig = []; // Column configuration
+let isResizing = false;
+let resizingColumn = null;
+let resizeStartX = 0;
+let resizeStartWidth = 0;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    loadColumnConfig();
     loadDevices();
     loadStats();
     setupEventListeners();
@@ -53,7 +60,11 @@ function setupEventListeners() {
     document.getElementById('groupFilter').addEventListener('change', filterDevices);
     document.getElementById('statusFilter').addEventListener('change', filterDevices);
     document.getElementById('favoritesOnly').addEventListener('change', filterDevices);
+    document.getElementById('groupingEnabled').addEventListener('change', toggleGrouping);
     document.getElementById('deviceForm').addEventListener('submit', saveDevice);
+
+    // Initialize grouping checkbox state
+    document.getElementById('groupingEnabled').checked = groupingEnabled;
 }
 
 // Load devices from API
@@ -267,6 +278,14 @@ function toggleGroupCollapse(groupName) {
     filterDevices();
 }
 
+// Toggle grouping enabled/disabled
+function toggleGrouping() {
+    groupingEnabled = document.getElementById('groupingEnabled').checked;
+    localStorage.setItem('groupingEnabled', JSON.stringify(groupingEnabled));
+    // Re-render to apply changes
+    filterDevices();
+}
+
 // Render a single device row
 function renderDeviceRow(device) {
     const isSelected = selectedDevices.has(device.id);
@@ -367,66 +386,73 @@ function displayDevices(devices) {
         return;
     }
 
-    // Group devices by group name
-    const grouped = {};
-    const ungrouped = [];
-
-    devices.forEach(device => {
-        if (device.group) {
-            if (!grouped[device.group]) grouped[device.group] = [];
-            grouped[device.group].push(device);
-        } else {
-            ungrouped.push(device);
-        }
-    });
-
-    // Desktop table view with grouping
+    // Desktop table view
     let tableHTML = '';
 
-    // Render grouped devices
-    Object.keys(grouped).sort().forEach(groupName => {
-        const groupDevices = grouped[groupName];
-        const isCollapsed = collapsedGroups.has(groupName);
-        const onlineCount = groupDevices.filter(d => d.status === 'online').length;
+    if (groupingEnabled) {
+        // Group devices by group name
+        const grouped = {};
+        const ungrouped = [];
 
-        // Group header row
-        tableHTML += `
-            <tr class="glass bg-white/5 border-t-2 border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="toggleGroupCollapse('${groupName}')">
-                <td colspan="9" class="px-6 py-3">
-                    <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="font-semibold text-white">${groupName}</span>
-                        <span class="text-sm text-gray-400">(${onlineCount}/${groupDevices.length} online)</span>
-                    </div>
-                </td>
-            </tr>
-        `;
+        devices.forEach(device => {
+            if (device.group) {
+                if (!grouped[device.group]) grouped[device.group] = [];
+                grouped[device.group].push(device);
+            } else {
+                ungrouped.push(device);
+            }
+        });
 
-        // Group devices (if not collapsed)
-        if (!isCollapsed) {
-            groupDevices.forEach(device => {
-                tableHTML += renderDeviceRow(device);
-            });
-        }
-    });
+        // Render grouped devices
+        Object.keys(grouped).sort().forEach(groupName => {
+            const groupDevices = grouped[groupName];
+            const isCollapsed = collapsedGroups.has(groupName);
+            const onlineCount = groupDevices.filter(d => d.status === 'online').length;
 
-    // Render ungrouped devices
-    if (ungrouped.length > 0) {
-        if (Object.keys(grouped).length > 0) {
+            // Group header row
             tableHTML += `
-                <tr class="glass bg-white/5 border-t-2 border-white/10">
+                <tr class="glass bg-white/5 border-t-2 border-white/10 cursor-pointer hover:bg-white/10 transition" onclick="toggleGroupCollapse('${groupName}')">
                     <td colspan="9" class="px-6 py-3">
                         <div class="flex items-center gap-3">
-                            <span class="font-semibold text-gray-400">Ungrouped Devices</span>
-                            <span class="text-sm text-gray-500">(${ungrouped.length})</span>
+                            <svg class="w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-semibold text-white">${groupName}</span>
+                            <span class="text-sm text-gray-400">(${onlineCount}/${groupDevices.length} online)</span>
                         </div>
                     </td>
                 </tr>
             `;
+
+            // Group devices (if not collapsed)
+            if (!isCollapsed) {
+                groupDevices.forEach(device => {
+                    tableHTML += renderDeviceRow(device);
+                });
+            }
+        });
+
+        // Render ungrouped devices
+        if (ungrouped.length > 0) {
+            if (Object.keys(grouped).length > 0) {
+                tableHTML += `
+                    <tr class="glass bg-white/5 border-t-2 border-white/10">
+                        <td colspan="9" class="px-6 py-3">
+                            <div class="flex items-center gap-3">
+                                <span class="font-semibold text-gray-400">Ungrouped Devices</span>
+                                <span class="text-sm text-gray-500">(${ungrouped.length})</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            ungrouped.forEach(device => {
+                tableHTML += renderDeviceRow(device);
+            });
         }
-        ungrouped.forEach(device => {
+    } else {
+        // Flat list view - no grouping
+        devices.forEach(device => {
             tableHTML += renderDeviceRow(device);
         });
     }
@@ -1332,6 +1358,128 @@ async function applyBulkGroup() {
     clearSelection();
 }
 
+// Show bulk icon dialog
+function showBulkIconDialog() {
+    if (selectedDevices.size === 0) return;
+
+    const deviceCount = selectedDevices.size;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'bulkIconModal';
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+
+    modal.innerHTML = `
+        <div class="glass rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold text-white mb-4">Set Icon for ${deviceCount} Device(s)</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-3">Select an icon:</label>
+                    <input type="hidden" id="bulkIconSelected" value="device">
+                    <div id="bulkIconPicker" class="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                        <!-- Icons will be dynamically generated -->
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="applyBulkIcon()"
+                            class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                        Apply
+                    </button>
+                    <button onclick="closeBulkIconDialog()"
+                            class="flex-1 px-4 py-2 glass hover:glass-hover text-white rounded-lg font-medium transition">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Initialize icon picker
+    initBulkIconPicker();
+}
+
+// Initialize bulk icon picker
+function initBulkIconPicker() {
+    const picker = document.getElementById('bulkIconPicker');
+    const currentIcon = document.getElementById('bulkIconSelected').value || 'device';
+
+    let html = '';
+    Object.keys(DEVICE_ICONS).forEach(iconName => {
+        const isSelected = iconName === currentIcon;
+        html += `
+            <button type="button"
+                    class="icon-option p-3 rounded-lg border-2 transition ${isSelected ? 'border-purple-500 bg-purple-500/20' : 'border-white/10 hover:border-purple-500/50'}"
+                    data-icon="${iconName}"
+                    onclick="selectBulkIcon('${iconName}')">
+                <div class="w-8 h-8 text-gray-400">${DEVICE_ICONS[iconName]}</div>
+            </button>
+        `;
+    });
+
+    picker.innerHTML = html;
+}
+
+// Select icon in bulk picker
+function selectBulkIcon(iconName) {
+    document.getElementById('bulkIconSelected').value = iconName;
+
+    // Update visual selection
+    document.querySelectorAll('#bulkIconPicker .icon-option').forEach(btn => {
+        if (btn.dataset.icon === iconName) {
+            btn.className = 'icon-option p-3 rounded-lg border-2 transition border-purple-500 bg-purple-500/20';
+        } else {
+            btn.className = 'icon-option p-3 rounded-lg border-2 transition border-white/10 hover:border-purple-500/50';
+        }
+    });
+}
+
+// Close bulk icon dialog
+function closeBulkIconDialog() {
+    const modal = document.getElementById('bulkIconModal');
+    if (modal) modal.remove();
+}
+
+// Apply bulk icon assignment
+async function applyBulkIcon() {
+    const iconName = document.getElementById('bulkIconSelected').value;
+    if (!iconName) {
+        showToast('Please select an icon', 'error');
+        return;
+    }
+
+    closeBulkIconDialog();
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const deviceId of selectedDevices) {
+        try {
+            await apiCall(`/api/devices/${deviceId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ icon: iconName })
+            });
+            // Update local device data
+            const device = allDevices.find(d => d.id === deviceId);
+            if (device) device.icon = iconName;
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        showToast(`Updated icon for ${successCount} device(s)`, 'success');
+        filterDevices(); // Re-render to show new icons
+    }
+    if (errorCount > 0) {
+        showToast(`Failed to update ${errorCount} device(s)`, 'error');
+    }
+
+    clearSelection();
+}
+
 // Bulk toggle favorite
 async function bulkToggleFavorite() {
     if (selectedDevices.size === 0) return;
@@ -1407,4 +1555,216 @@ async function bulkDelete() {
     }
 
     clearSelection();
+}
+
+/**
+ * COLUMN CONFIGURATION
+ */
+
+// Load column configuration from API
+async function loadColumnConfig() {
+    try {
+        const data = await apiCall('/api/columns');
+        columnConfig = data.columns;
+        renderTableHeaders();
+    } catch (error) {
+        console.error('Error loading column config:', error);
+        // Use default columns
+        columnConfig = [
+            {column_id: 'checkbox', display_name: '', is_visible: true, width: 60, position: 0, is_sortable: false},
+            {column_id: 'status', display_name: 'Status', is_visible: true, width: 100, position: 1, is_sortable: true},
+            {column_id: 'name', display_name: 'Name', is_visible: true, width: 200, position: 2, is_sortable: true},
+            {column_id: 'ip', display_name: 'IP Address', is_visible: true, width: 150, position: 3, is_sortable: true},
+            {column_id: 'mac', display_name: 'MAC Address', is_visible: true, width: 160, position: 4, is_sortable: false},
+            {column_id: 'vendor', display_name: 'Vendor', is_visible: true, width: 150, position: 5, is_sortable: false},
+            {column_id: 'group', display_name: 'Group', is_visible: true, width: 120, position: 6, is_sortable: false},
+            {column_id: 'last_seen', display_name: 'Last Seen', is_visible: true, width: 150, position: 7, is_sortable: false},
+            {column_id: 'actions', display_name: 'Actions', is_visible: true, width: 100, position: 8, is_sortable: false}
+        ];
+        renderTableHeaders();
+    }
+}
+
+// Render table headers based on column configuration
+function renderTableHeaders() {
+    const thead = document.querySelector('#devicesTable').closest('table').querySelector('thead tr');
+    if (!thead) return;
+
+    const visibleColumns = columnConfig.filter(c => c.is_visible).sort((a, b) => a.position - b.position);
+
+    thead.innerHTML = visibleColumns.map(col => {
+        const widthStyle = col.width ? `width: ${col.width}px; min-width: ${col.width}px;` : '';
+        const sortable = col.is_sortable ? `onclick="sortDevices('${col.column_id === 'name' ? 'nickname' : col.column_id}')"` : '';
+        const cursorClass = col.is_sortable ? 'cursor-pointer' : '';
+
+        if (col.column_id === 'checkbox') {
+            return `
+                <th class="px-4 py-3 text-left" style="${widthStyle}">
+                    <input type="checkbox"
+                           id="selectAllCheckbox"
+                           onchange="toggleSelectAll(this.checked)"
+                           class="form-checkbox h-5 w-5 text-blue-600 rounded">
+                </th>
+            `;
+        }
+
+        return `
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${cursorClass} relative"
+                style="${widthStyle}"
+                ${sortable}
+                data-column-id="${col.column_id}">
+                ${col.display_name}
+                ${col.column_id !== 'checkbox' && col.column_id !== 'actions' ? '<div class="resize-handle" onmousedown="startResize(event, \'' + col.column_id + '\')"></div>' : ''}
+            </th>
+        `;
+    }).join('');
+}
+
+// Start column resize
+function startResize(event, columnId) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    isResizing = true;
+    resizingColumn = columnId;
+    resizeStartX = event.pageX;
+
+    const col = columnConfig.find(c => c.column_id === columnId);
+    resizeStartWidth = col ? col.width : 100;
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+}
+
+// Handle column resize
+document.addEventListener('mousemove', function(event) {
+    if (!isResizing || !resizingColumn) return;
+
+    const diff = event.pageX - resizeStartX;
+    const newWidth = Math.max(50, resizeStartWidth + diff); // Minimum width of 50px
+
+    // Update column config
+    const col = columnConfig.find(c => c.column_id === resizingColumn);
+    if (col) {
+        col.width = newWidth;
+    }
+
+    // Update header width
+    const th = document.querySelector(`th[data-column-id="${resizingColumn}"]`);
+    if (th) {
+        th.style.width = `${newWidth}px`;
+        th.style.minWidth = `${newWidth}px`;
+    }
+
+    // Update all cells in this column
+    updateColumnWidths();
+});
+
+// End column resize
+document.addEventListener('mouseup', async function() {
+    if (isResizing && resizingColumn) {
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        // Save column width to API
+        try {
+            const col = columnConfig.find(c => c.column_id === resizingColumn);
+            if (col) {
+                await apiCall(`/api/columns/${resizingColumn}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ width: col.width })
+                });
+            }
+        } catch (error) {
+            console.error('Error saving column width:', error);
+        }
+
+        isResizing = false;
+        resizingColumn = null;
+    }
+});
+
+// Update column widths in the table
+function updateColumnWidths() {
+    const visibleColumns = columnConfig.filter(c => c.is_visible).sort((a, b) => a.position - b.position);
+    const rows = document.querySelectorAll('#devicesTable tr');
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        visibleColumns.forEach((col, index) => {
+            if (cells[index] && col.width) {
+                cells[index].style.width = `${col.width}px`;
+                cells[index].style.minWidth = `${col.width}px`;
+            }
+        });
+    });
+}
+
+// Toggle column visibility
+async function toggleColumnVisibility(columnId, isVisible) {
+    const col = columnConfig.find(c => c.column_id === columnId);
+    if (!col) return;
+
+    col.is_visible = isVisible;
+
+    try {
+        await apiCall(`/api/columns/${columnId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ is_visible: isVisible })
+        });
+
+        renderTableHeaders();
+        filterDevices(); // Re-render table rows
+    } catch (error) {
+        showToast('Error updating column visibility: ' + error.message, 'error');
+    }
+}
+
+// Show column settings dropdown
+function showColumnSettings() {
+    const existing = document.getElementById('columnSettingsDropdown');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+
+    const dropdown = document.createElement('div');
+    dropdown.id = 'columnSettingsDropdown';
+    dropdown.className = 'absolute top-full right-0 mt-2 glass rounded-lg p-3 z-50 min-w-[200px]';
+    dropdown.style.maxHeight = '400px';
+    dropdown.style.overflowY = 'auto';
+
+    dropdown.innerHTML = `
+        <div class="text-sm font-medium text-white mb-2">Configure Columns</div>
+        ${columnConfig.filter(c => c.column_id !== 'checkbox' && c.column_id !== 'actions').map(col => `
+            <label class="flex items-center space-x-2 py-2 hover:bg-white/10 rounded px-2 cursor-pointer">
+                <input type="checkbox"
+                       ${col.is_visible ? 'checked' : ''}
+                       onchange="toggleColumnVisibility('${col.column_id}', this.checked)"
+                       class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                <span class="text-sm text-gray-300">${col.display_name}</span>
+            </label>
+        `).join('')}
+        <div class="border-t border-white/10 my-2"></div>
+        <a href="/settings" class="block text-sm text-blue-400 hover:text-blue-300 px-2 py-1">
+            Rename columns in Settings →
+        </a>
+    `;
+
+    // Position relative to a button (we'll add this button to the dashboard)
+    const button = document.getElementById('columnSettingsBtn');
+    if (button) {
+        button.parentElement.style.position = 'relative';
+        button.parentElement.appendChild(dropdown);
+    }
+
+    // Close when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!dropdown.contains(e.target) && e.target.id !== 'columnSettingsBtn') {
+                dropdown.remove();
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }, 0);
 }

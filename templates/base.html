@@ -239,6 +239,32 @@
         .context-menu.show {
             display: block;
         }
+
+        /* Column Resize Handle */
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+            background: transparent;
+        }
+
+        .resize-handle:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        th {
+            position: relative;
+        }
+
+        /* Prevent text selection while resizing */
+        .resizing {
+            user-select: none;
+            cursor: col-resize !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
