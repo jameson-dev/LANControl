@@ -54,6 +54,18 @@ function setupEventListeners() {
     document.getElementById('statusFilter').addEventListener('change', filterDevices);
     document.getElementById('favoritesOnly').addEventListener('change', filterDevices);
     document.getElementById('deviceForm').addEventListener('submit', saveDevice);
+
+    // Close filter dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('filterDropdown');
+        const button = document.getElementById('filterDropdownBtn');
+        if (dropdown && !dropdown.contains(event.target) && !button.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Initialize filter badge
+    updateFilterBadge();
 }
 
 // Load devices from API
@@ -1407,4 +1419,43 @@ async function bulkDelete() {
     }
 
     clearSelection();
+}
+
+/**
+ * FILTER DROPDOWN FUNCTIONS
+ */
+
+// Toggle filter dropdown visibility
+function toggleFilterDropdown() {
+    const dropdown = document.getElementById('filterDropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+// Update filter badge count
+function updateFilterBadge() {
+    const groupFilter = document.getElementById('groupFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const favoritesOnly = document.getElementById('favoritesOnly').checked;
+
+    let activeFilterCount = 0;
+    if (groupFilter) activeFilterCount++;
+    if (statusFilter) activeFilterCount++;
+    if (favoritesOnly) activeFilterCount++;
+
+    const badge = document.getElementById('filterBadge');
+    if (activeFilterCount > 0) {
+        badge.textContent = activeFilterCount;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// Clear all filters
+function clearAllFilters() {
+    document.getElementById('groupFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('favoritesOnly').checked = false;
+    updateFilterBadge();
+    filterDevices();
 }
